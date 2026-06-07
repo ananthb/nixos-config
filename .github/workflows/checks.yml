@@ -1,0 +1,56 @@
+name: Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: lint (${{ matrix.system }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - system: x86_64-linux
+            runs-on: ubuntu-latest
+          - system: aarch64-linux
+            runs-on: ubuntu-24.04-arm
+          - system: aarch64-darwin
+            runs-on: macos-latest
+    runs-on: ${{ matrix.runs-on }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+      - uses: cachix/cachix-action@0fc020193b5a1fa3ac4575aa3a7d3aa6a35435ad # v16
+        with:
+          name: ananthb
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          extraPullNames: nix-community,lanzaboote
+      - name: formatting
+        run: nix build --no-link --print-build-logs .#checks.${{ matrix.system }}.formatting
+      - name: statix
+        run: nix build --no-link --print-build-logs .#checks.${{ matrix.system }}.statix
+      - name: deadnix
+        run: nix build --no-link --print-build-logs .#checks.${{ matrix.system }}.deadnix
+      - name: pre-commit
+        run: nix build --no-link --print-build-logs .#checks.${{ matrix.system }}.pre-commit
+
+  eval:
+    name: flake eval
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+      - uses: cachix/cachix-action@0fc020193b5a1fa3ac4575aa3a7d3aa6a35435ad # v16
+        with:
+          name: ananthb
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          extraPullNames: nix-community,lanzaboote
+      - run: nix flake check --no-build --all-systems --print-build-logs
