@@ -10,7 +10,6 @@
   cfg = config.machines;
 in {
   imports = [
-    inputs.home-manager.darwinModules.home-manager
     ../nixos/nix-settings.nix
   ];
 

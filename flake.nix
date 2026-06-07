@@ -55,7 +55,7 @@
     nixpkgs,
     git-hooks,
     ...
-  }: let
+  } @ inputs: let
     systems = [
       "aarch64-darwin"
       "aarch64-linux"
@@ -118,8 +118,26 @@
       # import them without going through nixosModules.
       options = ./modules/options.nix;
       dev = ./modules/darwin/dev.nix;
-      homebrew = ./modules/darwin/homebrew.nix;
-      host = ./modules/darwin/host.nix;
+      # Wrap homebrew + host modules so they close over nixos-config's own
+      # inputs for nix-homebrew / home-manager and their tap sources;
+      # consumers don't need those as flake inputs.
+      homebrew = {...}: {
+        imports = [
+          inputs.nix-homebrew.darwinModules.nix-homebrew
+          ./modules/darwin/homebrew.nix
+        ];
+        nix-homebrew.taps = {
+          "homebrew/homebrew-core" = inputs.homebrew-core;
+          "homebrew/homebrew-cask" = inputs.homebrew-cask;
+          "homebrew/homebrew-bundle" = inputs.homebrew-bundle;
+        };
+      };
+      host = {...}: {
+        imports = [
+          inputs.home-manager.darwinModules.home-manager
+          ./modules/darwin/host.nix
+        ];
+      };
     };
   in {
     inherit nixosModules homeManagerModules darwinModules;
