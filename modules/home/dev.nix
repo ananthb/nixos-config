@@ -135,11 +135,6 @@
     yazelix = {
       enable = true;
       terminal = "ghostty";
-      runtime_tool_sources = {
-        helix = "host";
-        yazi = "host";
-        lazygit = "host";
-      };
     };
 
     yazi = {
