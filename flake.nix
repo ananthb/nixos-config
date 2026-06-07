@@ -9,6 +9,23 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    homebrew-bundle = {
+      url = "github:homebrew/homebrew-bundle";
+      flake = false;
+    };
+
+    homebrew-cask = {
+      url = "github:homebrew/homebrew-cask";
+      flake = false;
+    };
+
+    homebrew-core = {
+      url = "github:homebrew/homebrew-core";
+      flake = false;
+    };
+
+    nix-homebrew.url = "github:zhaofengli-wip/nix-homebrew";
+
     nixvim = {
       url = "github:nix-community/nixvim";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -95,6 +112,8 @@
       # Platform-agnostic option declarations; aliased so darwin hosts can
       # import them without going through nixosModules.
       options = ./modules/options.nix;
+      dev = ./modules/darwin/dev.nix;
+      homebrew = ./modules/darwin/homebrew.nix;
     };
   in {
     inherit nixosModules homeManagerModules darwinModules;
