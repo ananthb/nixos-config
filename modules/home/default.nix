@@ -1,6 +1,6 @@
-{...}: {
+_: {
   imports = [
-    ../home-options.nix
+    ./options.nix
     ./shell.nix
     ./dev.nix
   ];

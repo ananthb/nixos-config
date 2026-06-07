@@ -18,7 +18,7 @@ Declared in `modules/options.nix`.
 
 ## Home-manager options
 
-Declared in `modules/home-options.nix`.
+Declared in `modules/home/options.nix`.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
