@@ -121,7 +121,7 @@
       # Wrap homebrew + host modules so they close over nixos-config's own
       # inputs for nix-homebrew / home-manager and their tap sources;
       # consumers don't need those as flake inputs.
-      homebrew = {...}: {
+      homebrew = _: {
         imports = [
           inputs.nix-homebrew.darwinModules.nix-homebrew
           ./modules/darwin/homebrew.nix
@@ -132,7 +132,7 @@
           "homebrew/homebrew-bundle" = inputs.homebrew-bundle;
         };
       };
-      host = {...}: {
+      host = _: {
         imports = [
           inputs.home-manager.darwinModules.home-manager
           ./modules/darwin/host.nix
