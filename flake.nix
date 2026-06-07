@@ -108,7 +108,7 @@
 
     homeManagerModules = {
       default = ./modules/home;
-      options = ./modules/home-options.nix;
+      options = ./modules/home/options.nix;
       shell = ./modules/home/shell.nix;
       dev = ./modules/home/dev.nix;
     };
