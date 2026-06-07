@@ -4,11 +4,16 @@
 {
   inputs,
   lib,
+  pkgs,
   ...
 }: {
   imports = [
     inputs.nixvim.homeModules.nixvim
     inputs.yazelix.homeManagerModules.default
+  ];
+
+  home.packages = lib.optionals pkgs.stdenv.hostPlatform.isLinux [
+    pkgs.helix
   ];
 
   programs = {
