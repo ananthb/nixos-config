@@ -1,0 +1,12 @@
+# nix build outputs
+result
+result-*
+
+# mdbook build output
+docs/book/
+
+# direnv
+.direnv
+
+# pre-commit
+.pre-commit-config.yaml

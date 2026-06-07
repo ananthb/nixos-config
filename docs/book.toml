@@ -1,0 +1,9 @@
+[book]
+title = "Machines"
+authors = ["Ananth Bhaskararaman"]
+language = "en"
+src = "src"
+
+[output.html]
+default-theme = "coal"
+git-repository-url = "https://github.com/ananthb/machines"
