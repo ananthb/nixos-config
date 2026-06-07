@@ -3,7 +3,7 @@ result
 result-*
 
 # mdbook build output
-docs/book/
+doc/book/
 
 # direnv
 .direnv
