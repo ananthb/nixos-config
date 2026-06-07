@@ -109,9 +109,9 @@
       system: let
         pkgs = nixpkgs.legacyPackages.${system};
       in {
-        docs = pkgs.stdenv.mkDerivation {
-          name = "nixos-config-docs";
-          src = ./docs;
+        doc = pkgs.stdenv.mkDerivation {
+          name = "nixos-config-doc";
+          src = ./doc;
           nativeBuildInputs = [pkgs.mdbook];
           buildPhase = "mdbook build";
           installPhase = "cp -r book $out";
@@ -123,19 +123,19 @@
       system: let
         pkgs = nixpkgs.legacyPackages.${system};
       in {
-        docs-serve = {
+        doc-serve = {
           type = "app";
           meta.description = "Serve the nixos-config documentation locally with live reload";
           program = let
             serve = pkgs.writeShellApplication {
-              name = "docs-serve";
+              name = "doc-serve";
               runtimeInputs = [pkgs.mdbook];
               text = ''
-                cd ${./docs}
+                cd ${./doc}
                 mdbook serve --open
               '';
             };
-          in "${serve}/bin/docs-serve";
+          in "${serve}/bin/doc-serve";
         };
       }
     );
