@@ -1,0 +1,133 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": { "type": "auto" },
+            "inspect": false
+          },
+          "mappings": [
+            {
+              "options": {
+                "1": { "color": "green", "text": "Active" },
+                "0": { "color": "red", "text": "Inactive" }
+              },
+              "type": "value"
+            }
+          ]
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Status" },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": { "mode": "basic", "type": "color-background" }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "desc": false, "displayName": "Service" }]
+      },
+      "title": "Container Service States",
+      "type": "table",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus" },
+          "expr": "node_systemd_unit_state{name=~\"wallabag.*|globalping.*|ripe-atlas.*\", state=\"active\"}",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "Time": true, "__name__": true, "instance": true, "job": true, "state": true },
+            "renameByName": { "name": "Service", "Value": "Status" }
+          }
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" }
+          },
+          "mappings": [
+            { "options": { "0": { "text": "Inactive" }, "1": { "text": "Active" } }, "type": "value" }
+          ],
+          "max": 1,
+          "min": 0
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "id": 2,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "title": "Service State Over Time",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus" },
+          "expr": "node_systemd_unit_state{name=~\"wallabag.*|globalping.*|ripe-atlas.*\", state=\"active\"}",
+          "legendFormat": "{{name}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["containers", "systemd"],
+  "templating": { "list": [] },
+  "time": { "from": "now-24h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Containers",
+  "uid": "containers",
+  "version": 1
+}
