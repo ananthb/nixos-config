@@ -9,6 +9,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     homebrew-bundle = {
       url = "github:homebrew/homebrew-bundle";
       flake = false;
@@ -114,6 +119,7 @@
       options = ./modules/options.nix;
       dev = ./modules/darwin/dev.nix;
       homebrew = ./modules/darwin/homebrew.nix;
+      host = ./modules/darwin/host.nix;
     };
   in {
     inherit nixosModules homeManagerModules darwinModules;
