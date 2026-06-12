@@ -268,10 +268,10 @@ in {
                   (mkAlert {
                     uid = "cf9dwz9m0fkzka";
                     title = "EcoFlow Battery AC Power Outage";
-                    expr = "ecoflow_inv_ac_in_vol";
+                    expr = "ecoflow_inv_ac_in_vol and (ecoflow_inv_ac_in_vol offset 5m >= 200000)";
                     threshold = 200000;
                     duration = "30s";
-                    summary = "AC power lost on EcoFlow {{ $labels.instance }}";
+                    summary = "AC power lost on EcoFlow {{ $labels.device }}";
                   })
                   (mkAlert {
                     uid = "gex1disk0n6dcf";
