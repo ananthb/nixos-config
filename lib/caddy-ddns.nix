@@ -46,7 +46,7 @@
             "github.com/caddy-dns/cloudflare@v0.2.2"
             "github.com/Elegant996/scgi-transport@v1.1.9"
           ];
-          hash = "sha256-xiss7PPwD2kS7h7McLR/6J92VTSD+9PKlUv0DpPpvqQ=";
+          hash = "sha256-5G6noyFTpvq/ZdvG0aY5cuQ5P+OZR4xReJCqOgxfp5M=";
         };
 
       globalConfig = ''
