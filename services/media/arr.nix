@@ -38,7 +38,7 @@ in {
         # Performance tuning
         pieces.memory.max.set = 2048M
         network.max_open_files.set = 600
-        network.max_open_sockets.set = 300
+        network.max_open_sockets.set = 1024
 
         # "slow" throttle: 10 MiB/s upload for seeded torrents
         throttle.up = slow, 10240
