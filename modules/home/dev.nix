@@ -134,7 +134,6 @@
 
     yazelix = {
       enable = true;
-      terminal = "ghostty";
     };
 
     yazi = {
