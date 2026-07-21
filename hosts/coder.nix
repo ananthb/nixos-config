@@ -1,0 +1,80 @@
+# NixOS guest for a Coder dev workspace, booted as a systemd PID-1 guest under
+# kata / cloud-hypervisor (the Nomad containerd driver uses the built OCI image
+# as the guest rootfs; kata supplies the kernel). The Coder agent runs as a
+# systemd service that reads CODER_AGENT_URL / CODER_AGENT_TOKEN from the
+# container environment injected by the Nomad jobspec, so no per-workspace init
+# script is baked into the image. The dev environment is the same home/coder.nix
+# profile used by homeConfigurations."coder@x86_64-linux".
+{
+  pkgs,
+  lib,
+  inputs,
+  ...
+}: {
+  imports = [
+    inputs.home-manager.nixosModules.home-manager
+    ../modules/options.nix
+    ../modules/nixos/nix-settings.nix
+  ];
+
+  # systemd as PID 1 with no bootloader/kernel — kata provides the kernel and
+  # runs the image's init. Networking (address, DNS, egress) is set up by the
+  # Nomad bridge/CNI on the guest NIC, so NixOS should not manage it.
+  boot.isContainer = true;
+  networking = {
+    hostName = "coder";
+    useDHCP = false;
+    useHostResolvConf = lib.mkForce false;
+  };
+
+  users.users.coder = {
+    isNormalUser = true;
+    home = "/home/coder";
+    extraGroups = ["wheel"];
+    shell = pkgs.fish;
+  };
+  security.sudo.wheelNeedsPassword = false;
+  programs.fish.enable = true;
+
+  environment.systemPackages = with pkgs; [coder curl git];
+
+  # Fetch the version-matched agent from the Coder server at boot (mirrors what
+  # Coder's generated init script does) and exec it. PassEnvironment forwards the
+  # jobspec-injected env from PID 1 to the service.
+  systemd.services.coder-agent = {
+    description = "Coder workspace agent";
+    wantedBy = ["multi-user.target"];
+    after = ["network-online.target"];
+    wants = ["network-online.target"];
+    path = [pkgs.curl];
+    serviceConfig = {
+      User = "coder";
+      WorkingDirectory = "/home/coder";
+      PassEnvironment = "CODER_AGENT_URL CODER_AGENT_TOKEN";
+      ExecStart = pkgs.writeShellScript "coder-agent-start" ''
+        set -eu
+        bin="$(mktemp -d)/coder"
+        curl -fsSL "$CODER_AGENT_URL/bin/coder-linux-amd64" -o "$bin"
+        chmod +x "$bin"
+        exec "$bin" agent
+      '';
+      Restart = "on-failure";
+      RestartSec = 5;
+    };
+  };
+
+  home-manager = {
+    useGlobalPkgs = true;
+    useUserPackages = true;
+    backupFileExtension = "hm-backup";
+    extraSpecialArgs = {
+      inherit inputs;
+      username = "coder";
+      hostname = "coder";
+      system = "x86_64-linux";
+    };
+    users.coder = import ../home/coder.nix;
+  };
+
+  system.stateVersion = "24.05";
+}

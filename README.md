@@ -1,5 +1,18 @@
 # nixos-config
 
-Reusable NixOS, nix-darwin, and home-manager modules — a fish + yazelix + nixvim dev environment, a minimal bash baseline, and infrastructure modules for Cloudflare tunnels, Tailscale, rclone sync, and more.
+How I run my machines: a shared Nix dev environment (fish + yazelix + nixvim,
+git, direnv, starship, CLI tools) plus the NixOS, nix-darwin, and home-manager
+configs that consume it — my laptop and my Coder dev VMs.
 
-Docs: <https://ananthb.github.io/nixos-config/>.
+Server and hosting infrastructure lives in
+[private-tech/platform](https://github.com/private-tech/platform).
+
+## Secrets
+
+Secrets are sops-encrypted; only public key material lives in this repo.
+Heavyweight credentials aren't shipped here — they're fetched at runtime from
+Vault via a sops-encrypted approle.
+
+## License
+
+GPLv3. See [LICENSE](https://github.com/ananthb/nixos-config/blob/main/LICENSE).

@@ -1,8 +1,22 @@
 {
-  description = "Reusable NixOS / nix-darwin / home-manager modules, services, and helpers";
+  description = "Ananth's dev environment: reusable Nix modules, the discovery (nix-darwin) host, and the coder dev-VM profile";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+
+    askpass-homebrew-tap = {
+      url = "github:theseal/homebrew-ssh-askpass";
+      flake = false;
+    };
+
+    cosmonaut = {
+      url = "github:ananthb/cosmonaut";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # Determinate Nix manages the daemon on discovery, replacing nix-darwin's
+    # native Nix management (see hosts/discovery.nix).
+    determinate.url = "https://flakehub.com/f/DeterminateSystems/determinate/3";
 
     git-hooks = {
       url = "github:cachix/git-hooks.nix";
@@ -29,15 +43,25 @@
       flake = false;
     };
 
+    nix-darwin = {
+      url = "github:nix-darwin/nix-darwin/master";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     nix-homebrew.url = "github:zhaofengli-wip/nix-homebrew";
+
+    nix-index-database = {
+      url = "github:nix-community/nix-index-database";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     nixvim = {
       url = "github:nix-community/nixvim";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    yazelix = {
-      url = "github:luccahuguet/yazelix";
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -48,14 +72,23 @@
         git-hooks.follows = "git-hooks";
       };
     };
+
+    yazelix = {
+      url = "github:luccahuguet/yazelix/863f7fe37c19e9f001224aadb5adc0fdfc3479d2";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = {
     self,
     nixpkgs,
+    nix-darwin,
+    home-manager,
     git-hooks,
     ...
   } @ inputs: let
+    username = "ananth";
+
     systems = [
       "aarch64-darwin"
       "aarch64-linux"
@@ -64,46 +97,49 @@
     ];
     forAllSystems = nixpkgs.lib.genAttrs systems;
 
+    # Pre-instantiate nixpkgs per system with the unfree allowlist and the
+    # nvim-treesitter-legacy deprecation-warning shim the dev config needs.
+    pkgsFor = system:
+      import nixpkgs {
+        inherit system;
+        config.allowUnfreePredicate = pkg:
+          builtins.elem (nixpkgs.lib.getName pkg) [
+            "1password"
+            "claude"
+            "claude-code"
+            "codex"
+            "codex-app"
+            "copilot.vim"
+            "discord"
+            "google-chrome"
+            "slack"
+            "terraform"
+            "vault"
+            "vault-bin"
+            "vscode"
+          ];
+        overlays = [
+          # Bypass the vimPlugins.nvim-treesitter-legacy deprecation warning
+          # that fires on every neovim build via vim-utils.nix's assert. We
+          # don't use any plugin that needs the legacy package.
+          (_: prev: {
+            vimPlugins = prev.vimPlugins.extend (
+              _: vprev: {
+                nvim-treesitter-legacy = vprev.nvim-treesitter.overrideAttrs (_: {
+                  pname = "nvim-treesitter-legacy-shim";
+                });
+              }
+            );
+          })
+        ];
+      };
+
     nixosModules = {
-      default = ./modules/nixos;
       options = ./modules/options.nix;
-      scripts = ./modules/nixos/scripts.nix;
-      cftunnel = ./modules/nixos/cftunnel.nix;
-      tailscale-serve = ./modules/nixos/tailscale-serve.nix;
-      service-target = ./modules/nixos/service-target.nix;
-      rclone-sync = ./modules/nixos/rclone-sync.nix;
       nix-settings = ./modules/nixos/nix-settings.nix;
-
-      actual = ./services/actual.nix;
-      caddy = ./services/caddy.nix;
-      esphome = ./services/esphome.nix;
-      frigate = ./services/frigate.nix;
-      gcloud-oauth = ./services/gcloud-oauth.nix;
-      hass = ./services/hass.nix;
-      homepage = ./services/homepage.nix;
-      immich = ./services/immich.nix;
-      immich-ml = ./services/immich-ml.nix;
-      logiops = ./services/logiops.nix;
-      mealie = ./services/mealie.nix;
-      mosquitto = ./services/mosquitto.nix;
-      radicale = ./services/radicale.nix;
-      searxng = ./services/searxng.nix;
-      seafile = ./services/seafile;
-      timemachinesrv = ./services/timemachinesrv.nix;
-      vault = ./services/vault.nix;
-      vaultwarden = ./services/vaultwarden.nix;
-
-      media-arr = ./services/media/arr.nix;
-      media-jellyfin = ./services/media/jellyfin.nix;
-      media-news = ./services/media/news.nix;
-
-      monitoring-blackbox = ./services/monitoring/blackbox.nix;
-      monitoring-ecoflow = ./services/monitoring/ecoflow.nix;
-      monitoring-grafana = ./services/monitoring/grafana.nix;
-      monitoring-libvirt = ./services/monitoring/libvirt.nix;
-      monitoring-postgres = ./services/monitoring/postgres.nix;
-      monitoring-probes = ./services/monitoring/probes.nix;
-      monitoring-victoriametrics = ./services/monitoring/victoriametrics.nix;
+      # Full NixOS guest for a Coder dev workspace (systemd + coder-agent
+      # service + the shared dev env). See hosts/coder.nix.
+      coder-vm = ./hosts/coder.nix;
     };
 
     homeManagerModules = {
@@ -118,9 +154,8 @@
       # import them without going through nixosModules.
       options = ./modules/options.nix;
       dev = ./modules/darwin/dev.nix;
-      # Wrap homebrew + host modules so they close over nixos-config's own
-      # inputs for nix-homebrew / home-manager and their tap sources;
-      # consumers don't need those as flake inputs.
+      # Wrap homebrew + host modules so they close over this flake's own inputs
+      # for nix-homebrew / home-manager and their tap sources.
       homebrew = _: {
         imports = [
           inputs.nix-homebrew.darwinModules.nix-homebrew
@@ -139,49 +174,77 @@
         ];
       };
     };
+
+    mkDarwinHost = {
+      hostname,
+      system,
+      extraModules ? [],
+    }: let
+      pkgs = pkgsFor system;
+      # Drop --force-cleanup (removed from brew bundle) via an eval-time text
+      # substitution rather than pkgs.applyPatches, so evaluating this config
+      # on a non-darwin host doesn't require an aarch64-darwin builder.
+      patchedHomebrewModule = builtins.toFile "homebrew.nix" (
+        builtins.replaceStrings
+        ["--force-cleanup"]
+        ["--cleanup"]
+        (builtins.readFile "${nix-darwin}/modules/homebrew.nix")
+      );
+    in
+      nix-darwin.lib.darwinSystem {
+        specialArgs = {
+          inherit system hostname username inputs;
+        };
+        modules =
+          extraModules
+          ++ [
+            {nixpkgs.pkgs = pkgs;}
+            darwinModules.options
+            darwinModules.host
+            darwinModules.homebrew
+            darwinModules.dev
+            ./hosts/${hostname}.nix
+            {
+              disabledModules = ["${nix-darwin}/modules/homebrew.nix"];
+              imports = [patchedHomebrewModule];
+            }
+          ];
+      };
   in {
     inherit nixosModules homeManagerModules darwinModules;
 
-    lib = {
-      containerImages = import ./lib/container-images.nix;
-      mkCaddyReverseProxies = import ./lib/caddy-helpers.nix;
-      inherit (import ./lib/caddy-ddns.nix) mkCaddyDdns;
+    darwinConfigurations.discovery = mkDarwinHost {
+      hostname = "discovery";
+      system = "aarch64-darwin";
     };
 
-    packages = forAllSystems (
-      system: let
-        pkgs = nixpkgs.legacyPackages.${system};
-      in {
-        doc = pkgs.stdenv.mkDerivation {
-          name = "nixos-config-doc";
-          src = ./doc;
-          nativeBuildInputs = [pkgs.mdbook];
-          buildPhase = "mdbook build";
-          installPhase = "cp -r book $out";
-        };
-      }
-    );
+    # Full NixOS guest for the Coder dev workspace: systemd PID 1, the coder
+    # agent as a service, dev env via home-manager. Built into the workspace
+    # image consumed by private-tech/platform.
+    nixosConfigurations.coder = nixpkgs.lib.nixosSystem {
+      specialArgs = {
+        inherit inputs username;
+        hostname = "coder";
+        system = "x86_64-linux";
+      };
+      modules = [
+        {nixpkgs.pkgs = pkgsFor "x86_64-linux";}
+        ./hosts/coder.nix
+      ];
+    };
 
-    apps = forAllSystems (
-      system: let
-        pkgs = nixpkgs.legacyPackages.${system};
-      in {
-        doc-serve = {
-          type = "app";
-          meta.description = "Serve the nixos-config documentation locally with live reload";
-          program = let
-            serve = pkgs.writeShellApplication {
-              name = "doc-serve";
-              runtimeInputs = [pkgs.mdbook];
-              text = ''
-                cd ${./doc}
-                mdbook serve --open
-              '';
-            };
-          in "${serve}/bin/doc-serve";
-        };
-      }
-    );
+    # Standalone home-manager profile — the same dev env as the NixOS guest
+    # above, for the lightweight nix-container path or ad-hoc use. Activate with:
+    #   nix run home-manager -- switch --flake github:ananthb/nixos-config#coder
+    homeConfigurations."coder@x86_64-linux" = home-manager.lib.homeManagerConfiguration {
+      pkgs = pkgsFor "x86_64-linux";
+      extraSpecialArgs = {
+        inherit inputs username;
+        hostname = "coder";
+        system = "x86_64-linux";
+      };
+      modules = [./home/coder.nix];
+    };
 
     formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.alejandra);
 
@@ -228,7 +291,7 @@
               formatterPkg
               pkgs.statix
               pkgs.deadnix
-              pkgs.mdbook
+              pkgs.sops
             ];
         };
       }
