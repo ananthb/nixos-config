@@ -181,15 +181,6 @@
       extraModules ? [],
     }: let
       pkgs = pkgsFor system;
-      # Drop --force-cleanup (removed from brew bundle) via an eval-time text
-      # substitution rather than pkgs.applyPatches, so evaluating this config
-      # on a non-darwin host doesn't require an aarch64-darwin builder.
-      patchedHomebrewModule = builtins.toFile "homebrew.nix" (
-        builtins.replaceStrings
-        ["--force-cleanup"]
-        ["--cleanup"]
-        (builtins.readFile "${nix-darwin}/modules/homebrew.nix")
-      );
     in
       nix-darwin.lib.darwinSystem {
         specialArgs = {
@@ -204,10 +195,6 @@
             darwinModules.homebrew
             darwinModules.dev
             ./hosts/${hostname}.nix
-            {
-              disabledModules = ["${nix-darwin}/modules/homebrew.nix"];
-              imports = [patchedHomebrewModule];
-            }
           ];
       };
   in {
