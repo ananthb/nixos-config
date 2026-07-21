@@ -1,0 +1,27 @@
+---
+keys:
+  - &admin_ananth 4F0758D4AAE24E6D5A4483C666A20525398E18D7
+  - &host_discovery age1mdd7y8q0nfk5gqkxg5jyfnzepdsx8vze9kppr93nz3455cmh3assxzquq0
+  - &host_discovery_user_ananth age1tx8dfgnfx4ql6wgch6cujyz4czx75k4upwg9udc8af3dgg7wvpvqlj6emp
+creation_rules:
+  - path_regex: secrets/global.yaml$
+    key_groups:
+      - pgp:
+          - *admin_ananth
+        age:
+          - *host_discovery
+          - *host_discovery_user_ananth
+  - path_regex: secrets/dev.yaml$
+    key_groups:
+      - pgp:
+          - *admin_ananth
+        age:
+          - *host_discovery
+          - *host_discovery_user_ananth
+  - path_regex: secrets/discovery.yaml$
+    key_groups:
+      - pgp:
+          - *admin_ananth
+        age:
+          - *host_discovery
+          - *host_discovery_user_ananth
