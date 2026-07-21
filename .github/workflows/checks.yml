@@ -53,6 +53,10 @@ jobs:
           name: ananthb
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
           extraPullNames: nix-community,lanzaboote
+      # Realize all inputs (incl. transitive) first: yazelix's home-manager
+      # module reads from an input source at eval time, which pure
+      # `nix flake check` on a fresh store reports as "path ... is not valid".
+      - run: nix flake archive
       - run: nix flake check --no-build --all-systems --print-build-logs
 
   # Build the Coder workspace image + NixOS toplevel and push them to the
