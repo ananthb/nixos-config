@@ -197,18 +197,14 @@
             ./hosts/${hostname}.nix
           ];
       };
-  in {
-    inherit nixosModules homeManagerModules darwinModules;
-
-    darwinConfigurations.discovery = mkDarwinHost {
-      hostname = "discovery";
-      system = "aarch64-darwin";
-    };
 
     # Full NixOS guest for the Coder dev workspace: systemd PID 1, the coder
-    # agent as a service, dev env via home-manager. Built into the workspace
-    # image consumed by private-tech/platform.
-    nixosConfigurations.coder = nixpkgs.lib.nixosSystem {
+    # agent as a service, dev env via home-manager. Kept as a let-binding rather
+    # than a nixosConfigurations output: `nix flake check` runs the nixos
+    # assertions/warnings pass on that output, which forces yazelix's
+    # import-from-derivation activation and fails under --no-build. It's still
+    # reusable as nixosModules.coder-vm and built via the coder-image package.
+    coderNixos = nixpkgs.lib.nixosSystem {
       specialArgs = {
         inherit inputs username;
         hostname = "coder";
@@ -218,6 +214,13 @@
         {nixpkgs.pkgs = pkgsFor "x86_64-linux";}
         ./hosts/coder.nix
       ];
+    };
+  in {
+    inherit nixosModules homeManagerModules darwinModules;
+
+    darwinConfigurations.discovery = mkDarwinHost {
+      hostname = "discovery";
+      system = "aarch64-darwin";
     };
 
     # Standalone home-manager profile — the same dev env as the NixOS guest
@@ -240,7 +243,7 @@
     # private-tech/platform's coder-images workflow.
     packages.x86_64-linux.coder-image = let
       pkgs = pkgsFor "x86_64-linux";
-      system = self.nixosConfigurations.coder.config.system.build.toplevel;
+      system = coderNixos.config.system.build.toplevel;
     in
       pkgs.dockerTools.buildLayeredImage {
         name = "coder-nixos";
