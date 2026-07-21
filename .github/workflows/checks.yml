@@ -54,3 +54,23 @@ jobs:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
           extraPullNames: nix-community,lanzaboote
       - run: nix flake check --no-build --all-systems --print-build-logs
+
+  # Build the Coder workspace image + NixOS toplevel and push them to the
+  # ananthb cachix, so private-tech/platform's coder-images job pulls the
+  # closure from cache instead of rebuilding it. main only.
+  cache-warm:
+    name: cache-warm (coder image)
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+      - uses: cachix/cachix-action@0fc020193b5a1fa3ac4575aa3a7d3aa6a35435ad # v16
+        with:
+          name: ananthb
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          extraPullNames: nix-community,lanzaboote
+      - run: |
+          nix build --no-link --print-build-logs \
+            .#packages.x86_64-linux.coder-image \
+            .#nixosConfigurations.coder.config.system.build.toplevel
