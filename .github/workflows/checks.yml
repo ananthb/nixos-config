@@ -76,5 +76,4 @@ jobs:
           extraPullNames: nix-community,lanzaboote
       - run: |
           nix build --no-link --print-build-logs \
-            .#packages.x86_64-linux.coder-image \
-            .#nixosConfigurations.coder.config.system.build.toplevel
+            .#packages.x86_64-linux.coder-image
