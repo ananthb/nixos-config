@@ -1,17 +1,15 @@
 # nixos-config
 
-How I run my machines: a shared Nix dev environment (fish + yazelix + nixvim,
-git, direnv, starship, CLI tools) plus the NixOS, nix-darwin, and home-manager
-configs that consume it — my laptop and my Coder dev VMs.
-
-Server and hosting infrastructure lives in
-[private-tech/platform](https://github.com/private-tech/platform).
+How I run my machines. It holds a shared Nix dev environment (fish, yazelix,
+nixvim, git, direnv, starship, and CLI tools). It also holds the NixOS,
+nix-darwin, and home-manager configs that consume that environment. These run
+my laptop and my Coder dev VMs.
 
 ## Secrets
 
-Secrets are sops-encrypted; only public key material lives in this repo.
-Heavyweight credentials aren't shipped here — they're fetched at runtime from
-Vault via a sops-encrypted approle.
+Secrets are sops-encrypted. Only public key material lives in this repo.
+Heavyweight credentials aren't shipped here. They're fetched at runtime from
+Vault using a sops-encrypted approle.
 
 ## License
 
