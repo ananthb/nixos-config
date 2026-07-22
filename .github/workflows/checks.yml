@@ -60,7 +60,7 @@ jobs:
       - run: nix flake check --no-build --all-systems --print-build-logs
 
   # Build the Coder workspace image + NixOS toplevel and push them to the
-  # ananthb cachix, so private-tech/platform's coder-images job pulls the
+  # ananthb cachix, so the private platform repo's coder-images job pulls the
   # closure from cache instead of rebuilding it. main only.
   cache-warm:
     name: cache-warm (coder image)
