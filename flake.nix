@@ -239,8 +239,8 @@
     # OCI image for the Coder NixOS workspace. Its entrypoint is the NixOS
     # container init (systemd as PID 1); the Nomad containerd/kata driver uses
     # this rootfs to boot the microVM, so the guest comes up as a full NixOS
-    # system with the coder-agent service. Built + pushed to GHCR by
-    # private-tech/platform's coder-images workflow.
+    # system with the coder-agent service. Built and pushed to GHCR by the
+    # private platform repo's coder-images workflow.
     packages.x86_64-linux.coder-image = let
       pkgs = pkgsFor "x86_64-linux";
       system = coderNixos.config.system.build.toplevel;
