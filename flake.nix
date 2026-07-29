@@ -297,6 +297,7 @@
               formatterPkg
               pkgs.statix
               pkgs.deadnix
+              pkgs.gh
               pkgs.sops
             ];
         };
