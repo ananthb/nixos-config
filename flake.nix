@@ -102,9 +102,9 @@
     username = "ananth";
 
     systems = [
+      # nixpkgs 26.11 dropped x86_64-darwin support; only aarch64 Macs remain.
       "aarch64-darwin"
       "aarch64-linux"
-      "x86_64-darwin"
       "x86_64-linux"
     ];
     forAllSystems = nixpkgs.lib.genAttrs systems;
@@ -122,6 +122,7 @@
             "codex"
             "codex-app"
             "copilot.vim"
+            "copilot-language-server"
             "discord"
             "google-chrome"
             "slack"
