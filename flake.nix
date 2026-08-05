@@ -9,6 +9,15 @@
       flake = false;
     };
 
+    # The Homebrew binary itself. Pinned directly (rather than left as a
+    # transitive input of nix-homebrew) so it can be bumped in lockstep with
+    # the homebrew-core/homebrew-cask taps via `nix flake update brew-src`.
+    # The taps' formula/cask install DSL must be parseable by this brew.
+    brew-src = {
+      url = "github:Homebrew/brew";
+      flake = false;
+    };
+
     cosmonaut = {
       url = "github:ananthb/cosmonaut";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -48,7 +57,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    nix-homebrew.url = "github:zhaofengli-wip/nix-homebrew";
+    nix-homebrew = {
+      url = "github:zhaofengli-wip/nix-homebrew";
+      inputs.brew-src.follows = "brew-src";
+    };
 
     nix-index-database = {
       url = "github:nix-community/nix-index-database";
