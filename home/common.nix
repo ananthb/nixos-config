@@ -6,7 +6,7 @@
   cfg = config.machines;
   homeDir =
     (
-      if pkgs.stdenv.isLinux
+      if pkgs.stdenv.hostPlatform.isLinux
       then "/home/"
       else "/Users/"
     )
@@ -24,6 +24,11 @@ in {
   };
 
   programs.home-manager.enable = true;
+
+  # Building `man home-configuration.nix` forces nixpkgs' options.json doc
+  # derivation, which embeds the nixpkgs source path without string context
+  # and so warns on every evaluation. The manual is online; skip the build.
+  manual.manpages.enable = false;
 
   sops = {
     age.sshKeyPaths = [(homeDir + "/.ssh/id_ed25519")];
