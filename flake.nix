@@ -117,6 +117,7 @@
         config.allowUnfreePredicate = pkg:
           builtins.elem (nixpkgs.lib.getName pkg) [
             "1password"
+            "antigravity-cli"
             "claude"
             "claude-code"
             "codex"

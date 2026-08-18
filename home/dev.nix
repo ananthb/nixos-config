@@ -35,7 +35,7 @@ in {
   };
 
   # Fix for sops-nix LaunchAgent on macOS.
-  launchd.agents.sops-nix = pkgs.lib.mkIf pkgs.stdenv.isDarwin {
+  launchd.agents.sops-nix = pkgs.lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
     enable = true;
     config = {
       EnvironmentVariables = {
@@ -52,7 +52,9 @@ in {
         devenv
         flyctl
         fzf
-        gemini-cli
+        # Successor to gemini-cli, which nixpkgs removed after Google
+        # transitioned the tool to Antigravity CLI.
+        antigravity-cli
         gh
         git-absorb
         git
@@ -85,7 +87,7 @@ in {
     # On macOS, home-manager's services.gpg-agent is unavailable (it is
     # systemd-only), so point gpg-agent at pinentry-mac directly. Needed for
     # YubiKey PIN prompts, e.g. `sops updatekeys` with the admin PGP key.
-    file.".gnupg/gpg-agent.conf" = lib.mkIf pkgs.stdenv.isDarwin {
+    file.".gnupg/gpg-agent.conf" = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
       text = ''
         pinentry-program ${pkgs.pinentry_mac}/Applications/pinentry-mac.app/Contents/MacOS/pinentry-mac
         default-cache-ttl 600

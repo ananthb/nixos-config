@@ -16,7 +16,7 @@
   home = {
     packages = [pkgs.codex];
 
-    sessionVariables = lib.mkIf pkgs.stdenv.isDarwin {
+    sessionVariables = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
       SSH_ASKPASS = "/opt/homebrew/bin/ssh-askpass";
       SSH_ASKPASS_REQUIRE = "force";
     };
