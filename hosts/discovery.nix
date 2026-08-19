@@ -48,8 +48,6 @@ in {
   documentation.enable = false;
   system.tools.darwin-uninstaller.enable = false;
 
-  services.karabiner-elements.enable = false;
-
   # Exclude codespace hosts (cs.* and cs-*) so cosmonaut's check
   # against bare `Host *` rules in ~/.ssh/config stays green.
   programs.ssh.extraConfig = ''
@@ -105,7 +103,7 @@ in {
       "gimp"
       "google-chrome"
       "jellyfin-media-player"
-      "mac-mouse-fix"
+      "openlogi"
       "openmtp"
       "raspberry-pi-imager"
       "rectangle-pro"
