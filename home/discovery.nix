@@ -14,7 +14,10 @@
   };
 
   home = {
-    packages = [pkgs.codex];
+    packages = [
+      pkgs.aria2 # one-off torrent/magnet downloads: aria2c "magnet:?..."
+      pkgs.codex
+    ];
 
     sessionVariables = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
       SSH_ASKPASS = "/opt/homebrew/bin/ssh-askpass";
