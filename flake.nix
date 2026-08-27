@@ -75,11 +75,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    nixvim = {
-      url = "github:nix-community/nixvim";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     sops-nix = {
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -122,8 +117,7 @@
     ];
     forAllSystems = nixpkgs.lib.genAttrs systems;
 
-    # Pre-instantiate nixpkgs per system with the unfree allowlist and the
-    # nvim-treesitter-legacy deprecation-warning shim the dev config needs.
+    # Pre-instantiate nixpkgs per system with the unfree allowlist.
     pkgsFor = system:
       import nixpkgs {
         inherit system;
@@ -135,8 +129,6 @@
             "claude-code"
             "codex"
             "codex-app"
-            "copilot.vim"
-            "copilot-language-server"
             "discord"
             "google-chrome"
             "slack"
@@ -145,20 +137,6 @@
             "vault-bin"
             "vscode"
           ];
-        overlays = [
-          # Bypass the vimPlugins.nvim-treesitter-legacy deprecation warning
-          # that fires on every neovim build via vim-utils.nix's assert. We
-          # don't use any plugin that needs the legacy package.
-          (_: prev: {
-            vimPlugins = prev.vimPlugins.extend (
-              _: vprev: {
-                nvim-treesitter-legacy = vprev.nvim-treesitter.overrideAttrs (_: {
-                  pname = "nvim-treesitter-legacy-shim";
-                });
-              }
-            );
-          })
-        ];
       };
 
     nixosModules = {
@@ -180,7 +158,6 @@
       # Platform-agnostic option declarations; aliased so darwin hosts can
       # import them without going through nixosModules.
       options = ./modules/options.nix;
-      dev = ./modules/darwin/dev.nix;
       hardening = ./modules/darwin/hardening.nix;
       # Wrap homebrew + host modules so they close over this flake's own inputs
       # for nix-homebrew / home-manager and their tap sources.
@@ -221,7 +198,6 @@
             darwinModules.options
             darwinModules.host
             darwinModules.homebrew
-            darwinModules.dev
             darwinModules.hardening
             ./hosts/${hostname}.nix
           ];

@@ -1,5 +1,5 @@
 # Personal development config: git identity, sops secrets, personal packages.
-# Reusable dev tooling (nixvim, git settings, direnv) lives in modules/home/dev.nix.
+# Reusable dev tooling (helix, git settings, direnv) lives in modules/home/dev.nix.
 {
   config,
   inputs,

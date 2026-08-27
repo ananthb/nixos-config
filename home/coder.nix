@@ -1,4 +1,4 @@
-# Coder dev-VM home profile. Reuses the shared dev environment (nixvim, fish +
+# Coder dev-VM home profile. Reuses the shared dev environment (helix, fish +
 # yazelix, git, direnv) but carries NO secrets: the microVM authenticates via
 # the Coder agent / tailnet. If a workspace later needs heavyweight credentials,
 # follow the Vault-approle pattern (a sops-encrypted approle decrypted at
@@ -24,7 +24,6 @@
     username = lib.mkDefault "coder";
     homeDirectory = lib.mkDefault "/home/coder";
     stateVersion = "24.05";
-    sessionVariables.EDITOR = "nvim";
 
     packages = with pkgs; [
       coder
