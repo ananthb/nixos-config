@@ -55,6 +55,25 @@
     linger = true;
     shell = pkgs.fish;
   };
+
+  # The upstream prebuilt Baguette image declares its own account (`aldur`, from
+  # nixos-crostini's configuration.nix), and that is the account ChromeOS
+  # attached to on first boot. garcon and sommelier are *user* units running
+  # under it, and garcon is part of what ChromeOS waits on to consider the VM
+  # up. NixOS removes users it previously managed once they leave the config, so
+  # declaring only `username` here deletes that account mid-switch, tears down
+  # its user manager, and the VM stops signalling readiness -- `vmc start` then
+  # fails with "timeout while waiting for a signal" even though the system is
+  # otherwise fine. Keep the image's account declared until it is confirmed that
+  # ChromeOS is using `username` instead, then this block can go.
+  users.users.aldur = {
+    isNormalUser = true;
+    home = "/home/aldur";
+    extraGroups = ["wheel" "netdev" "video" "audio"];
+    linger = true;
+    shell = pkgs.fish;
+  };
+
   security.sudo.wheelNeedsPassword = false;
   programs.fish.enable = true;
 
