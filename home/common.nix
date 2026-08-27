@@ -20,7 +20,6 @@ in {
   home = {
     homeDirectory = homeDir;
     inherit (cfg) username;
-    sessionVariables.EDITOR = "nvim";
   };
 
   programs.home-manager.enable = true;

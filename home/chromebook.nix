@@ -1,5 +1,5 @@
 # Chromebook home profile for the ChromeOS Baguette VM. Reuses the same shared
-# dev environment as home/coder.nix (nixvim, fish + yazelix, git, direnv) and
+# dev environment as home/coder.nix (helix, fish + yazelix, git, direnv) and
 # carries NO secrets: this guest has no YubiKey and no sops age key, so commits
 # stay unsigned here. Clipboard, xdg-open and the X/Wayland bridge come from the
 # baguette module rather than from this profile.
@@ -24,7 +24,6 @@
     username = lib.mkDefault username;
     homeDirectory = lib.mkDefault "/home/${username}";
     stateVersion = "25.05";
-    sessionVariables.EDITOR = "nvim";
 
     packages = with pkgs; [
       delta
@@ -61,47 +60,40 @@
     # output. coderNixos dodges that by not being an output and
     # homeConfigurations are invisible to flake check, so this is the first
     # place CI ever evaluates it. Dropping it here also buys back store on a
-    # 20G VM; yazi and the nvim yazi/zellij-nav plugins are configured
-    # separately in dev.nix and survive. discovery and coder keep yazelix.
+    # 20G VM; yazi is configured separately in dev.nix and survives, and helix
+    # reads ~/.config/helix here rather than the yazelix-managed config tree.
+    # discovery and coder keep yazelix.
     yazelix.enable = lib.mkForce false;
 
     # yazelix was the only thing pulling in the multiplexer.
     zellij.enable = true;
+  };
 
-    # The LSP set in the shared dev.nix is sized for a workstation. On a 20G VM
-    # the heavyweights cost more store than they earn on a machine that mostly
-    # sees this repo: rust_analyzer drags in rustc and cargo, clangd drags in
-    # LLVM, ltex is a JVM app, and pyright / ts_ls / html / cssls / dockerls each
-    # bring Node. Keep the languages this host actually edits — Nix, Go,
-    # Terraform/HCL, shell, YAML, Markdown, Lua — and drop the rest. These stay
-    # enabled on discovery and coder; delete a line here to get one back.
-    nixvim.plugins = {
-      lsp.servers = {
-        clangd.enable = lib.mkForce false;
-        cssls.enable = lib.mkForce false;
-        dockerls.enable = lib.mkForce false;
-        html.enable = lib.mkForce false;
-        ltex.enable = lib.mkForce false;
-        pyright.enable = lib.mkForce false;
-        rust_analyzer.enable = lib.mkForce false;
-        ts_ls.enable = lib.mkForce false;
-        zls.enable = lib.mkForce false;
-      };
+  # The language catalog in modules/home/helix.nix is sized for a
+  # workstation. On a 20G VM the heavyweights cost more store than they earn
+  # on a machine that mostly sees this repo: rust drags in rustc and cargo, c
+  # drags in LLVM, ltex is a JVM app, and python / typescript / html / css /
+  # docker each bring Node. Keep the languages this host actually edits --
+  # Nix, Go, Terraform/HCL, shell, YAML, Markdown, Lua -- and drop the rest.
+  # These stay enabled on discovery and coder; delete an entry to get one back.
+  dev.helix = {
+    disable = [
+      "c"
+      "css"
+      "docker"
+      "html"
+      "ltex"
+      "python"
+      "rust"
+      "typescript"
+      "zig"
+    ];
 
-      # Linters for the languages dropped above. golangci_lint, terraform_validate
-      # and yamllint stay: they cover what this host still edits.
-      none-ls.sources.diagnostics = {
-        ansiblelint.enable = lib.mkForce false;
-        mypy.enable = lib.mkForce false;
-        pylint.enable = lib.mkForce false;
-        tfsec.enable = lib.mkForce false;
-      };
-
-      # Debug adapters and helpers for those same languages. dap, dap-go and
-      # dap-ui stay; dap-lldb in particular would pull LLDB back in.
-      dap-lldb.enable = lib.mkForce false;
-      dap-python.enable = lib.mkForce false;
-      zig.enable = lib.mkForce false;
-    };
+    # Linters for languages this host keeps but doesn't need audited.
+    # golangci-lint and yamllint stay: they cover what it still edits.
+    disableLinters = [
+      "ansible-lint"
+      "tfsec"
+    ];
   };
 }

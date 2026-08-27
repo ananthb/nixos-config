@@ -1,5 +1,0 @@
-_: {
-  homebrew.brews = [
-    "helix"
-  ];
-}

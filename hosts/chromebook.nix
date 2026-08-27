@@ -34,7 +34,7 @@
   # every boot, so the filesystem grows to whatever `vmc create --size` handed
   # the VM. The image only has to hold the initial closure, and it is zstd
   # compressed for transport, so unwritten space costs almost nothing. The
-  # module's 4096 default is still too small once nixvim's LSP servers and
+  # module's 4096 default is still too small once helix's language servers and
   # yazelix are in the closure. Only relevant when building an image; bootstrap
   # from the upstream prebuilt image and this is never used.
   virtualisation.diskImageSize = 12288;
