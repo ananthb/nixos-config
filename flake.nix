@@ -168,6 +168,7 @@
       # import them without going through nixosModules.
       options = ./modules/options.nix;
       dev = ./modules/darwin/dev.nix;
+      hardening = ./modules/darwin/hardening.nix;
       # Wrap homebrew + host modules so they close over this flake's own inputs
       # for nix-homebrew / home-manager and their tap sources.
       homebrew = _: {
@@ -208,6 +209,7 @@
             darwinModules.host
             darwinModules.homebrew
             darwinModules.dev
+            darwinModules.hardening
             ./hosts/${hostname}.nix
           ];
       };

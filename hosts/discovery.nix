@@ -120,7 +120,6 @@ in {
       "GarageBand" = 682658836;
       "iMovie" = 408981434;
       "Tailscale" = 1475387142;
-      "Telegram" = 747648890;
       "Velja" = 1607635845;
       "WhatsApp" = 310633997;
     };
