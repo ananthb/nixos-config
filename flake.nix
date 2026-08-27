@@ -67,6 +67,14 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # ChromeOS Baguette ("containerless Crostini") support: the guest-side
+    # integration module (vshd, maitred, garcon, sommelier) plus the btrfs
+    # rootfs image builders. See hosts/chromebook.nix.
+    nixos-crostini = {
+      url = "github:aldur/nixos-crostini";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     nixvim = {
       url = "github:nix-community/nixvim";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -100,6 +108,11 @@
     ...
   } @ inputs: let
     username = "ananth";
+
+    # The Baguette VM's account has to match the one ChromeOS creates for
+    # Linux, which is derived from the signed-in Google account and is `antsub`
+    # on this device rather than the `ananth` used everywhere else.
+    chromebookUsername = "antsub";
 
     systems = [
       # nixpkgs 26.11 dropped x86_64-darwin support; only aarch64 Macs remain.
@@ -238,6 +251,27 @@
       hostname = "discovery";
       system = "aarch64-darwin";
     };
+
+    # The Chromebook's ChromeOS Baguette VM. Unlike coderNixos above this is a
+    # real nixosConfigurations output: the guest rebuilds itself in place with
+    # `nixos-rebuild switch --flake .#chromebook`, which resolves that attr.
+    nixosConfigurations.chromebook = nixpkgs.lib.nixosSystem {
+      specialArgs = {
+        inherit inputs;
+        username = chromebookUsername;
+        hostname = "chromebook";
+        system = "aarch64-linux";
+      };
+      modules = [
+        {nixpkgs.pkgs = pkgsFor "aarch64-linux";}
+        ./hosts/chromebook.nix
+      ];
+    };
+
+    # Compressed btrfs rootfs for `vmc create --vm-type BAGUETTE --source`.
+    # Buildable on any aarch64-linux host, including from inside the VM itself.
+    packages.aarch64-linux.baguette-zimage =
+      self.nixosConfigurations.chromebook.config.system.build.btrfsImageCompressed;
 
     # Standalone home-manager profile — the same dev env as the NixOS guest
     # above, for the lightweight nix-container path or ad-hoc use. Activate with:
