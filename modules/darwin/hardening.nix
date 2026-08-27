@@ -11,6 +11,13 @@ in {
   # Gatekeeper are enabled out of band (they can't be flipped from a
   # config file); everything declarable lives here.
 
+  # TouchID for sudo. reattach is what makes it work inside tmux/screen,
+  # where the sudo process is detached from the GUI session.
+  security.pam.services.sudo_local = {
+    touchIdAuth = true;
+    reattach = true;
+  };
+
   networking.applicationFirewall = {
     enable = true;
     # Signed Apple and Developer-ID binaries still accept incoming
