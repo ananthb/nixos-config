@@ -55,6 +55,19 @@
       signing.signByDefault = lib.mkForce false;
     };
 
+    # yazelix's home-manager module builds its runtime configs by reading from
+    # an input source during activation, which `nix flake check` cannot resolve
+    # ("path ... is not valid") once this host is a real nixosConfigurations
+    # output. coderNixos dodges that by not being an output and
+    # homeConfigurations are invisible to flake check, so this is the first
+    # place CI ever evaluates it. Dropping it here also buys back store on a
+    # 20G VM; yazi and the nvim yazi/zellij-nav plugins are configured
+    # separately in dev.nix and survive. discovery and coder keep yazelix.
+    yazelix.enable = lib.mkForce false;
+
+    # yazelix was the only thing pulling in the multiplexer.
+    zellij.enable = true;
+
     # The LSP set in the shared dev.nix is sized for a workstation. On a 20G VM
     # the heavyweights cost more store than they earn on a machine that mostly
     # sees this repo: rust_analyzer drags in rustc and cargo, clangd drags in
