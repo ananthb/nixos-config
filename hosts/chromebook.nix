@@ -5,11 +5,12 @@
 # clipboard, port forwarding — plus the rootfs image builders. The dev
 # environment is the same shared profile the Coder guest uses.
 #
-# Bootstrap: download baguette_rootfs.img.zst from the baguette-image job's
-# artifact on the latest main run of .github/workflows/checks.yml. CI builds it
-# on a hosted aarch64-linux runner because nothing local can: the image is
-# aarch64-linux and the machine that manages this repo is aarch64-darwin with no
-# linux-builder. Put the file in the ChromeOS Downloads folder, then in crosh:
+# Bootstrap: download the baguette-image job's artifact from the latest main run
+# of .github/workflows/checks.yml and unzip it to get baguette_rootfs.img.zst.
+# CI builds it on a hosted aarch64-linux runner because nothing local can: the
+# image is aarch64-linux and the machine that manages this repo is
+# aarch64-darwin with no linux-builder. Put the .zst in the ChromeOS Downloads
+# folder -- leave it compressed, vmc reads it as-is -- then in crosh:
 #   vmc create --vm-type BAGUETTE --size 20G \
 #     --source /home/chronos/user/MyFiles/Downloads/baguette_rootfs.img.zst baguette
 #   vmc start --vm-type BAGUETTE baguette
