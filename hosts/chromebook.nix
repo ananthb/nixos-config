@@ -5,19 +5,20 @@
 # clipboard, port forwarding — plus the rootfs image builders. The dev
 # environment is the same shared profile the Coder guest uses.
 #
-# Bootstrap: download the baguette-image job's artifact from the latest main run
-# of .github/workflows/checks.yml and unzip it to get baguette_rootfs.img.zst.
-# CI builds it on a hosted aarch64-linux runner because nothing local can: the
-# image is aarch64-linux and the machine that manages this repo is
-# aarch64-darwin with no linux-builder. Put the .zst in the ChromeOS Downloads
-# folder -- leave it compressed, vmc reads it as-is -- then in crosh:
+# Bootstrap: download the image straight into the ChromeOS Downloads folder,
+#   https://github.com/ananthb/nixos-config/releases/latest/download/baguette_rootfs.img.zst
+# leaving it compressed, since vmc reads the .zst as-is. Then in crosh:
 #   vmc create --vm-type BAGUETTE --size 20G \
 #     --source /home/chronos/user/MyFiles/Downloads/baguette_rootfs.img.zst baguette
 #   vmc start --vm-type BAGUETTE baguette
 # Once it boots, this config takes over in place:
 #   sudo nixos-rebuild switch --flake .#chromebook
-# To build the same image by hand, on any aarch64-linux machine including a
-# Baguette VM that is already running:
+# .github/workflows/baguette-image.yml builds that asset on a hosted
+# aarch64-linux runner every time a release is published, because nothing local
+# can: the image is aarch64-linux and the machine that manages this repo is
+# aarch64-darwin with no linux-builder. After changing this config, publish a
+# fresh one with `gh release create <tag>`. To build the same image by hand, on
+# any aarch64-linux machine including a Baguette VM that is already running:
 #   nix build .#packages.aarch64-linux.baguette-zimage
 #
 # Do not bootstrap from nixos-crostini's own prebuilt image. It ships their
