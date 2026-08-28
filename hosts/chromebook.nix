@@ -5,14 +5,36 @@
 # clipboard, port forwarding — plus the rootfs image builders. The dev
 # environment is the same shared profile the Coder guest uses.
 #
-# Bootstrap: download the upstream prebuilt aarch64 image (or build
-# .#packages.aarch64-linux.baguette-zimage on any aarch64-linux host), put
-# baguette_rootfs.img.zst in the ChromeOS Downloads folder, then in crosh:
+# Bootstrap is two stages, because the image this flake builds is aarch64-linux
+# and the machine that manages this repo is aarch64-darwin with no linux-builder.
+# Stage one seeds an aarch64-linux machine from nixos-crostini's prebuilt image;
+# stage two uses it to build our own image and recreates the VM from that. In
+# crosh, with baguette_rootfs.img.zst in the ChromeOS Downloads folder:
 #   vmc create --vm-type BAGUETTE --size 20G \
 #     --source /home/chronos/user/MyFiles/Downloads/baguette_rootfs.img.zst baguette
 #   vmc start --vm-type BAGUETTE baguette
-# Once it boots, this config takes over in place:
+# Then from inside that VM:
+#   nix build github:ananthb/nixos-config#packages.aarch64-linux.baguette-zimage
+# and repeat the vmc create/start above against the result, on a fresh VM name.
+# Thereafter this config takes over in place:
 #   sudo nixos-rebuild switch --flake .#chromebook
+#
+# Why two stages rather than switching onto the upstream image directly: that
+# image ships nixos-crostini's placeholder `aldur` as uid 1000, and `vmc start`
+# binds the ChromeOS-side integration to whichever account it set up on first
+# boot. Switching this config onto it leaves ChromeOS talking to `aldur` while
+# home-manager configures `username`, and drops `aldur` besides (see below).
+# Building our own image makes `username` uid 1000 from the very first boot, so
+# the ChromeOS account and the configured account are the same one.
+#
+# If you do want to switch onto the upstream image anyway -- convenient for
+# stage one, since it makes the seed VM a comfortable place to build from --
+# stop NixOS from deleting `aldur` out from under ChromeOS first:
+#   sudo sh -c \
+#     "tr ' ' '\n' </var/lib/nixos/declarative-users | grep -vx aldur \
+#      | paste -sd' ' >/var/lib/nixos/declarative-users"
+# That drops `aldur` from the list of NixOS-managed users, after which
+# mutableUsers (on by default) leaves the account alone indefinitely.
 {
   pkgs,
   inputs,
@@ -41,35 +63,30 @@
 
   machines.username = username;
 
-  # `vmc start` creates this account imperatively on first boot; declaring it
-  # here keeps the shell, groups and home-manager profile under NixOS's
-  # control. The name must match the username ChromeOS uses for Linux, or the
-  # ChromeOS-side integration (shared folders, Terminal) attaches to a
-  # different account than the one this config configures.
+  # The ChromeOS-side account. `vmc start` sets it up on first boot by running
+  # usermod against the image's uid 1000 user -- that is what the
+  # /usr/sbin/usermod hack in the baguette module exists for -- so this is the
+  # account the built image has to ship, and the name has to match the username
+  # ChromeOS uses for Linux, or the ChromeOS-side integration (shared folders,
+  # Terminal) attaches to a different account than the one this config
+  # configures. Declaring it here keeps the shell, groups and home-manager
+  # profile under NixOS's control.
+  #
+  # Never drop the account a running VM is attached to as part of a switch.
+  # update-users-groups.pl deletes any user listed in
+  # /var/lib/nixos/declarative-users that is no longer declared -- mutableUsers
+  # only protects users NixOS never declared, so it does not save you here.
+  # Losing that account tears down its user manager and with it the garcon and
+  # sommelier units ChromeOS waits on to consider the VM up, and `vmc start`
+  # then fails with "timeout while waiting for a signal" even though the system
+  # is otherwise fine. Change the account by building a fresh image and
+  # recreating the VM, per the bootstrap notes above.
   users.users.${username} = {
     isNormalUser = true;
     home = "/home/${username}";
     extraGroups = ["wheel" "netdev" "video" "audio"];
     # Keep the user manager (and its sommelier/garcon units) alive without an
     # open shell session.
-    linger = true;
-    shell = pkgs.fish;
-  };
-
-  # The upstream prebuilt Baguette image declares its own account (`aldur`, from
-  # nixos-crostini's configuration.nix), and that is the account ChromeOS
-  # attached to on first boot. garcon and sommelier are *user* units running
-  # under it, and garcon is part of what ChromeOS waits on to consider the VM
-  # up. NixOS removes users it previously managed once they leave the config, so
-  # declaring only `username` here deletes that account mid-switch, tears down
-  # its user manager, and the VM stops signalling readiness -- `vmc start` then
-  # fails with "timeout while waiting for a signal" even though the system is
-  # otherwise fine. Keep the image's account declared until it is confirmed that
-  # ChromeOS is using `username` instead, then this block can go.
-  users.users.aldur = {
-    isNormalUser = true;
-    home = "/home/aldur";
-    extraGroups = ["wheel" "netdev" "video" "audio"];
     linger = true;
     shell = pkgs.fish;
   };
