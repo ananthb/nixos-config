@@ -92,16 +92,6 @@ jobs:
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-      # virtualisation.diskImageSize is 12G, and the uncompressed system
-      # tarball, the raw btrfs image and its zstd copy are all realised into the
-      # store together. The hosted arm64 runner starts with roughly 14G free, so
-      # hand back what the runner image is sitting on before building.
-      - name: free disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
-            /usr/local/share/boost /usr/local/lib/node_modules || true
-          sudo docker image prune -af || true
-          df -h /
       - uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
       - uses: cachix/cachix-action@0fc020193b5a1fa3ac4575aa3a7d3aa6a35435ad # v16
         with:
@@ -112,7 +102,6 @@ jobs:
       # baguette module clears requiredSystemFeatures on it, so this does not
       # need /dev/kvm on the runner.
       - run: nix build --print-build-logs .#packages.aarch64-linux.baguette-zimage
-      - run: df -h /
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: baguette-rootfs-aarch64
