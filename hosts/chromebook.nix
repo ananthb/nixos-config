@@ -5,36 +5,32 @@
 # clipboard, port forwarding — plus the rootfs image builders. The dev
 # environment is the same shared profile the Coder guest uses.
 #
-# Bootstrap is two stages, because the image this flake builds is aarch64-linux
-# and the machine that manages this repo is aarch64-darwin with no linux-builder.
-# Stage one seeds an aarch64-linux machine from nixos-crostini's prebuilt image;
-# stage two uses it to build our own image and recreates the VM from that. In
-# crosh, with baguette_rootfs.img.zst in the ChromeOS Downloads folder:
+# Bootstrap: download baguette_rootfs.img.zst from the baguette-image job's
+# artifact on the latest main run of .github/workflows/checks.yml. CI builds it
+# on a hosted aarch64-linux runner because nothing local can: the image is
+# aarch64-linux and the machine that manages this repo is aarch64-darwin with no
+# linux-builder. Put the file in the ChromeOS Downloads folder, then in crosh:
 #   vmc create --vm-type BAGUETTE --size 20G \
 #     --source /home/chronos/user/MyFiles/Downloads/baguette_rootfs.img.zst baguette
 #   vmc start --vm-type BAGUETTE baguette
-# Then from inside that VM:
-#   nix build github:ananthb/nixos-config#packages.aarch64-linux.baguette-zimage
-# and repeat the vmc create/start above against the result, on a fresh VM name.
-# Thereafter this config takes over in place:
+# Once it boots, this config takes over in place:
 #   sudo nixos-rebuild switch --flake .#chromebook
+# To build the same image by hand, on any aarch64-linux machine including a
+# Baguette VM that is already running:
+#   nix build .#packages.aarch64-linux.baguette-zimage
 #
-# Why two stages rather than switching onto the upstream image directly: that
-# image ships nixos-crostini's placeholder `aldur` as uid 1000, and `vmc start`
-# binds the ChromeOS-side integration to whichever account it set up on first
-# boot. Switching this config onto it leaves ChromeOS talking to `aldur` while
-# home-manager configures `username`, and drops `aldur` besides (see below).
-# Building our own image makes `username` uid 1000 from the very first boot, so
-# the ChromeOS account and the configured account are the same one.
-#
-# If you do want to switch onto the upstream image anyway -- convenient for
-# stage one, since it makes the seed VM a comfortable place to build from --
-# stop NixOS from deleting `aldur` out from under ChromeOS first:
+# Do not bootstrap from nixos-crostini's own prebuilt image. It ships their
+# placeholder `aldur` as uid 1000, and `vmc start` binds the ChromeOS-side
+# integration to whichever account it set up on first boot -- so ChromeOS would
+# end up talking to `aldur` while home-manager configures `username`, and
+# switching this config onto it deletes `aldur` besides (see below). Our image
+# has `username` at uid 1000 from the first boot, so the ChromeOS account and
+# the configured account are the same one. If you do boot theirs anyway, take
+# `aldur` out of the NixOS-managed set before switching:
 #   sudo sh -c \
 #     "tr ' ' '\n' </var/lib/nixos/declarative-users | grep -vx aldur \
 #      | paste -sd' ' >/var/lib/nixos/declarative-users"
-# That drops `aldur` from the list of NixOS-managed users, after which
-# mutableUsers (on by default) leaves the account alone indefinitely.
+# after which mutableUsers (on by default) leaves the account alone.
 {
   pkgs,
   inputs,
