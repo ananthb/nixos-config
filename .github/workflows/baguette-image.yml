@@ -1,0 +1,65 @@
+# Builds the Chromebook's Baguette rootfs image and attaches it to the release
+# that triggered the run, so bootstrapping a VM is a plain download from
+#   https://github.com/ananthb/nixos-config/releases/latest/download/baguette_rootfs.img.zst
+# rather than a hunt through workflow artifacts.
+#
+# This runs on a hosted aarch64-linux runner because nothing local can build it:
+# the image is aarch64-linux and the machine that manages this repo is
+# aarch64-darwin with no linux-builder. It is deliberately not part of the
+# Checks workflow -- a config change rebuilds the whole toplevel and then a 12G
+# image on top of it, which is far too much for every push. Cut an image with
+# `gh release create <tag>`; the asset appears on the release a few minutes
+# later. See hosts/chromebook.nix.
+name: Baguette image
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    name: baguette-image (aarch64-linux)
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      # Attaching the asset to the release writes to the repo.
+      contents: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+      - uses: cachix/cachix-action@0fc020193b5a1fa3ac4575aa3a7d3aa6a35435ad # v16
+        with:
+          name: ananthb
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          extraPullNames: nix-community,lanzaboote
+      # The btrfs image is assembled in a qemu VM (vmTools.runInLinuxVM). The
+      # baguette module clears requiredSystemFeatures on it, so this does not
+      # need /dev/kvm -- the hosted runners do not have it.
+      - run: nix build --print-build-logs .#packages.aarch64-linux.baguette-zimage
+      # Copy out of the store so the upload sees a plain file, and keep the
+      # basename: hosts/chromebook.nix's `vmc create --source` line names it.
+      - run: cp -L result/baguette_rootfs.img.zst baguette_rootfs.img.zst
+
+      - name: attach to release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" \
+            baguette_rootfs.img.zst --clobber
+
+      # Manual runs have no release to attach to, so they just leave an
+      # artifact -- enough to check the build still works without cutting one.
+      - name: upload as artifact
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: baguette-rootfs-aarch64
+          path: baguette_rootfs.img.zst
