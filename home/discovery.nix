@@ -5,8 +5,11 @@
   ...
 }: {
   imports = [
+    inputs.scurry.homeManagerModules.default
     inputs.starla.homeManagerModules.default
   ];
+
+  services.scurry.enable = true;
 
   services.starla = {
     enable = true;
