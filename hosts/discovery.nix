@@ -85,6 +85,22 @@ in {
   nix-homebrew.user = cfg.username;
   nix-homebrew.taps."theseal/homebrew-ssh-askpass" = inputs.askpass-homebrew-tap;
 
+  # Homebrew 4 refuses to load a formula from a third-party tap until the tap is
+  # trusted, and `brew bundle` aborts on the first untrusted one -- so a single
+  # unblessed tap takes the rest of the activation down with it, which is how
+  # this surfaced: everything after ssh-askpass silently stopped applying.
+  #
+  # preActivation runs before the homebrew activation script (nix-darwin orders
+  # preActivation, extraActivation, then homebrew), so the trust is in place by
+  # the time bundle runs. Invoked as the brew user the same way nix-darwin
+  # invokes bundle itself; activation runs as root and brew refuses that.
+  system.activationScripts.preActivation.text = ''
+    if [ -x /opt/homebrew/bin/brew ]; then
+      sudo --user=${cfg.username} --set-home /opt/homebrew/bin/brew trust theseal/ssh-askpass \
+        >/dev/null 2>&1 || true
+    fi
+  '';
+
   homebrew = {
     brews = [
       "container"
