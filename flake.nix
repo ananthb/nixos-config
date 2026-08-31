@@ -275,12 +275,32 @@
     packages.x86_64-linux.coder-image = let
       pkgs = pkgsFor "x86_64-linux";
       system = coderNixos.config.system.build.toplevel;
+
+      # Docker mounts /sys/fs/cgroup READ-ONLY for unprivileged containers --
+      # under runc and under kata alike, and --cgroupns=host does not change it.
+      # systemd as PID 1 cannot create its slices on a read-only cgroup2 tree, so
+      # it exits immediately with status 255 and prints NOTHING: the last line in
+      # the container log is stage 2's own "starting systemd...", which reads
+      # like the image is fine and the agent is at fault. Remount it first.
+      #
+      # The remount needs CAP_SYS_ADMIN, which the workspace jobspec grants with
+      # cap_add = ["sys_admin"]; that same capability is what lets stage 2 mount
+      # /proc, /dev and /run at all. If it is missing, say so on stderr rather
+      # than handing over to a systemd that will die silently.
+      init = pkgs.writeShellScript "coder-init" ''
+        if ! ${pkgs.util-linux}/bin/mount -o remount,rw /sys/fs/cgroup; then
+          echo "coder-init: could not remount /sys/fs/cgroup read-write." >&2
+          echo "coder-init: systemd will exit 255 without logging. The container" >&2
+          echo "coder-init: needs CAP_SYS_ADMIN -- cap_add = [\"sys_admin\"]." >&2
+        fi
+        exec ${system}/init "$@"
+      '';
     in
       pkgs.dockerTools.buildLayeredImage {
         name = "coder-nixos";
         tag = "latest";
-        contents = [system];
-        config.Cmd = ["${system}/init"];
+        contents = [system init];
+        config.Cmd = [init];
       };
 
     formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.alejandra);
