@@ -19,11 +19,11 @@
     "brew-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1788066774,
-        "narHash": "sha256-0GGbd+9DjPVmYANY0flk7DanV0tEIkPnnA9IfyYKCj0=",
+        "lastModified": 1788199337,
+        "narHash": "sha256-4HpJ2UDFim39J9MP9tYQOGc1XrlFn+JLt5/Ov6urEDc=",
         "owner": "Homebrew",
         "repo": "brew",
-        "rev": "b25bda0b3279b84162da94b2bcf680ed48a18e85",
+        "rev": "58bf2a669f2014ee9015c6116b5a0902f95c302d",
         "type": "github"
       },
       "original": {
@@ -479,11 +479,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1787797243,
-        "narHash": "sha256-8+Q7NOB7RPajRjA4pbCDLzqH+MTjnG9x6LUPLfL2joA=",
+        "lastModified": 1788199093,
+        "narHash": "sha256-gh09zTgEsbnoWwrNPzIDajc/HoE446Sc3yKDCPFa7Xs=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "99c9ec63390f1d8c14d95d9e8b17cc29cfbd4e11",
+        "rev": "f772b7f968365e7b2b70a860c509d214639556fe",
         "type": "github"
       },
       "original": {
@@ -532,11 +532,11 @@
     "homebrew-cask": {
       "flake": false,
       "locked": {
-        "lastModified": 1788086694,
-        "narHash": "sha256-/lrrRsgcrr558RQE/lld2/gGp8NXE0AOVdeAh8Onto4=",
+        "lastModified": 1788197942,
+        "narHash": "sha256-egYVuEqaqD/06AQrGINseGtgD4w3pXEvBVGKARwvgNQ=",
         "owner": "homebrew",
         "repo": "homebrew-cask",
-        "rev": "d084313d5b1c0f528a03292c91ac87740fa74514",
+        "rev": "03ed458e4a5df702eae5066a133779d0e5367d0c",
         "type": "github"
       },
       "original": {
@@ -548,11 +548,11 @@
     "homebrew-core": {
       "flake": false,
       "locked": {
-        "lastModified": 1788088272,
-        "narHash": "sha256-snWc335j2BgxLPifLvAmoH1jzoqwTBpmJ9AIippny8U=",
+        "lastModified": 1788200423,
+        "narHash": "sha256-FpjOJ3azcfFrRTZ86Yoi1DPhoF7F34tq4JZ7V2Q8/iM=",
         "owner": "homebrew",
         "repo": "homebrew-core",
-        "rev": "c7b40694a735fd9e837eae451f56d40bbfa0e5a7",
+        "rev": "e8334749ca7a7789127c9c72b40d3a3a28616465",
         "type": "github"
       },
       "original": {
@@ -784,11 +784,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1785678421,
-        "narHash": "sha256-l8avyRaAonZE0kx2YyrQ3u8DsCfKIFRUQwaD5/0jOvw=",
+        "lastModified": 1788111306,
+        "narHash": "sha256-HCkPdlAxCdM3j1XQzGPW12ml1IEFZgRCocOpzeBdhcA=",
         "owner": "aldur",
         "repo": "nixos-crostini",
-        "rev": "8d6353492d812411b2e78086bdc66d8a9dde173d",
+        "rev": "9452876ab48c11e78ba71ab21c79e63431b47f4c",
         "type": "github"
       },
       "original": {
@@ -915,11 +915,11 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1787900134,
-        "narHash": "sha256-VYXO0XZlgj06dxJZRhrD3WoSsvq/c7+/Akyoa22pefw=",
+        "lastModified": 1788039129,
+        "narHash": "sha256-pa4Q0qErvCvzCaaUph7Sm37RhR4xvPrYI8Lgz6k85+A=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "83199d0d373dd3ac2b9a1996b1d0263f76ab7a4c",
+        "rev": "d2f67949798825fe853f7c5d0492b8bf016d3f88",
         "type": "github"
       },
       "original": {
@@ -1118,11 +1118,11 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1788090279,
-        "narHash": "sha256-iasZADRj1L0ahwIKRSQEKr4S7Fk3jDMi9ZY2HYAvPjI=",
+        "lastModified": 1788090627,
+        "narHash": "sha256-uY8mrGH9GtPEK5tLvU9mrBZOxd1ua1R3rZNOfvYvb74=",
         "owner": "ananthb",
         "repo": "scurry",
-        "rev": "a32540bafa97f71c531974fee78531d93c81c84f",
+        "rev": "6aff1f41daa92e177311e90d4e83d96de782ef43",
         "type": "github"
       },
       "original": {
@@ -1164,11 +1164,11 @@
         "rust-overlay": "rust-overlay_2"
       },
       "locked": {
-        "lastModified": 1788030584,
-        "narHash": "sha256-xuZAwYjBpl/OB/b4GjXPy+5bZyls4DOLW6eSXvVJFHQ=",
+        "lastModified": 1788179976,
+        "narHash": "sha256-YuzGirBpeVLQsFORxsTMBlBBVRSZ5qePXcMaAGoESlk=",
         "owner": "ananthb",
         "repo": "starla",
-        "rev": "5f1284db38e307cf7918c654cd77fc673649d266",
+        "rev": "5d2ab4f52bb2bd46fc69c192bedaf0dc9cb2d4fa",
         "type": "github"
       },
       "original": {
