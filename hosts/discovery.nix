@@ -72,8 +72,9 @@ in {
     imports = let
       hostModule = (import ../lib/home-host-module.nix {inherit lib;}) hostname;
     in [
-      ../home/common.nix
-      ../home/dev.nix
+      ../modules/home/options.nix
+      ../modules/home/shell.nix
+      ../modules/home/dev.nix
       hostModule
     ];
   };

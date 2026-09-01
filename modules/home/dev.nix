@@ -1,9 +1,16 @@
-# Reusable development environment: helix, fish + yazelix (zellij + yazi),
-# git (without identity), direnv, gpg. Personal identity, secrets, and
-# packages should be set in the consuming config.
+# THE development environment. Every profile imports this and gets the same
+# CLI: helix, fish + yazelix (zellij + yazi), git, direnv, gpg, and the package
+# baseline below. There is deliberately no second "dev" file and no "common" --
+# those existed side by side and drifted, so `git`, `mosh`, `htop` and friends
+# were copy-pasted across four profiles and `htop` reached only one of them.
+#
+# What does NOT belong here: secrets (sops, YubiKeys) and anything host- or
+# platform-specific. Those live in the consuming profile -- home/discovery.nix
+# is the only one with any, because it is the only host with key material.
 {
   inputs,
   lib,
+  pkgs,
   ...
 }: {
   imports = [
@@ -11,7 +18,38 @@
     inputs.yazelix.homeManagerModules.default
   ];
 
+  # Building `man home-configuration.nix` forces nixpkgs' options.json doc
+  # derivation, which embeds the nixpkgs source path without string context and
+  # so warns on every evaluation. The manual is online; skip the build.
+  manual.manpages.enable = false;
+
+  # The baseline. Anything genuinely used in every environment goes here, not
+  # in a profile. Tools that a programs.* block already installs (git, fd, bat,
+  # eza, zoxide, atuin, gnupg) are deliberately absent -- listing them again is
+  # a second place to forget, and shows up as a duplicate in the profile.
+  # `delta` IS listed: git uses it as the pager via settings, which does not
+  # pull the package in on its own.
+  home.packages = with pkgs; [
+    claude-code
+    coder
+    delta
+    devenv
+    fzf
+    gh
+    git-absorb
+    glab
+    hack-font
+    htop
+    jq
+    lazygit
+    mosh
+    nix-output-monitor
+    ripgrep
+  ];
+
   programs = {
+    home-manager.enable = true;
+
     atuin = {
       enable = true;
       enableFishIntegration = true;
@@ -179,7 +217,16 @@
 
     gpg = {
       enable = true;
-      publicKeys = [];
+
+      # Public key, so it is safe in every environment. Importing it
+      # declaratively means `sops updatekeys` can find it after a fresh setup
+      # without a manual `gpg --recv-keys`.
+      publicKeys = [
+        {
+          source = ../../home/keys/admin_ananth.asc;
+          trust = "ultimate";
+        }
+      ];
       settings = {
         use-agent = true;
       };
@@ -193,6 +240,15 @@
     git = {
       enable = true;
       signing.format = lib.mkDefault null;
+
+      # One user, so identity is part of the dev env rather than something each
+      # profile restates. Signing stays unset here: only hosts with a YubiKey
+      # can sign, and they opt in.
+      settings.user = {
+        name = "Ananth Bhaskararaman";
+        email = "antsub@gmail.com";
+        useConfigOnly = "true";
+      };
 
       settings = {
         core.editor = "hx";

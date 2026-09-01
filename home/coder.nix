@@ -1,12 +1,13 @@
-# Coder dev-VM home profile. Reuses the shared dev environment (helix, fish +
-# yazelix, git, direnv) but carries NO secrets: the microVM authenticates via
-# the Coder agent / tailnet. If a workspace later needs heavyweight credentials,
-# follow the Vault-approle pattern (a sops-encrypted approle decrypted at
-# runtime, then secrets fetched from the platform Vault) rather than shipping
-# sops material into this public, secret-free profile.
+# Coder dev-VM home profile. Gets the whole CLI env -- including git identity --
+# from modules/home/dev.nix, and adds only what is true of this guest alone.
+#
+# Carries NO secrets: the microVM authenticates via the Coder agent / tailnet.
+# If a workspace later needs heavyweight credentials, follow the Vault-approle
+# pattern (a sops-encrypted approle decrypted at runtime, then secrets fetched
+# from the platform Vault) rather than shipping sops material into this public,
+# secret-free profile.
 {
   inputs,
-  pkgs,
   lib,
   ...
 }: {
@@ -24,37 +25,9 @@
     username = lib.mkDefault "coder";
     homeDirectory = lib.mkDefault "/home/coder";
     stateVersion = "24.05";
-
-    packages = with pkgs; [
-      coder
-      delta
-      devenv
-      fd
-      fzf
-      gh
-      git
-      git-absorb
-      glab
-      jq
-      lazygit
-      mosh
-      nix-output-monitor
-      ripgrep
-    ];
   };
 
-  programs = {
-    home-manager.enable = true;
-
-    git = {
-      settings.user = {
-        name = "Ananth Bhaskararaman";
-        email = "antsub@gmail.com";
-        useConfigOnly = "true";
-      };
-      # dev.nix leaves git signing unset (mkDefault null); the VM has no
-      # YubiKey, so keep commits unsigned here.
-      signing.signByDefault = lib.mkForce false;
-    };
-  };
+  # dev.nix leaves git signing unset (mkDefault null); the VM has no YubiKey,
+  # so keep commits unsigned here.
+  programs.git.signing.signByDefault = lib.mkForce false;
 }
