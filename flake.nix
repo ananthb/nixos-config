@@ -299,7 +299,12 @@
       pkgs.dockerTools.buildLayeredImage {
         name = "coder-nixos";
         tag = "latest";
-        contents = [system init];
+        # `init` is deliberately NOT in contents: entries there are copied into
+        # the rootfs and must be directories, so a bare script fails the
+        # customisation layer with "Not a directory". It does not need to be --
+        # streamLayeredImage takes its closure roots from contents AND the
+        # config, so referencing it from Cmd is enough to put it in a layer.
+        contents = [system];
         config.Cmd = [init];
       };
 
