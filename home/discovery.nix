@@ -56,7 +56,7 @@
         # authorized_keys, so skip the YubiKey and its askpass prompt.
         # Temporary: this node is mid-conversion to its replacement, whose
         # Flatcar root authorizes only the two YubiKey keys. Drop this
-        # block once it boots as its replacement.
+        # block once that host takes over.
         "flatcar-gateway flatcar-gateway.local 10.15.16.101" = {
           IdentityFile = "~/.ssh/id_ed25519";
           IdentitiesOnly = "yes";
