@@ -33,8 +33,18 @@ in {
 
   system.defaults = {
     screensaver = {
-      # Lock as soon as the screen sleeps. displaysleep is 2 minutes, so
-      # a walked-away-from laptop is locked in about that long.
+      # askForPassword takes effect; askForPasswordDelay DOES NOT. macOS 26
+      # no longer honours the delay from any preference domain (plain user
+      # and -currentHost were both tried and ignored) -- Apple moved it
+      # behind an authenticated store so malware can't widen the grace
+      # period. `sysadminctl -screenLock` is the CLI for it and refuses to
+      # run without an admin password, which does not belong in this repo.
+      #
+      # The delay is therefore set by hand in
+      #   System Settings > Lock Screen > "Require password after ..."
+      # and must be re-checked after a major OS upgrade. Declared here
+      # anyway to record the intent; verify with `sysadminctl -screenLock
+      # status`, not by reading the defaults domain back.
       askForPassword = true;
       askForPasswordDelay = 0;
     };
@@ -77,20 +87,6 @@ in {
     #   sudo cat /var/log/appfirewall.log
     "$fw" --setloggingmode on >/dev/null || true
     "$fw" --setloggingopt detail >/dev/null || true
-
-    # system.defaults.screensaver writes only the plain user domain, but the
-    # Lock Screen pane and loginwindow read the per-host (-currentHost) one,
-    # which nix-darwin leaves empty. Mirror the values there so the setting
-    # is actually present where the lock screen looks for it.
-    #
-    # Note: `sysadminctl -screenLock status` reports its own number and is
-    # unaffected by either domain. It cannot be driven from here -- it demands
-    # an admin password, and that has no business in this repo. Verify the
-    # real behaviour in System Settings > Lock Screen, not via sysadminctl.
-    sudo -u ${lib.escapeShellArg cfg.username} /usr/bin/defaults -currentHost \
-      write com.apple.screensaver askForPassword -int 1 || true
-    sudo -u ${lib.escapeShellArg cfg.username} /usr/bin/defaults -currentHost \
-      write com.apple.screensaver askForPasswordDelay -int 0 || true
 
     # AirPlay Receiver listens on :5000 and :7000 for anything that can
     # reach this host on the local network. Off unless it's actually in use.
