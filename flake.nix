@@ -304,12 +304,19 @@
         # fd 1: whatever it prints lands in `docker logs` / `nomad alloc logs`.
         # ForwardToConsole was not used instead because /dev/console is only
         # wired up for a TTY-allocated container, which this is not.
+        # Every command here is an absolute store path on purpose: this script
+        # runs before systemd, so PATH is whatever the runtime handed PID 1 --
+        # which is nothing. A bare `seq` or `sleep` is a "command not found".
+        #
+        # journalctl -f exits non-zero while the journal does not exist yet and
+        # blocks forever once it does, so retrying it IS the wait.
         (
-          for _ in $(seq 1 60); do
-            if [ -d /run/log/journal ] || [ -d /var/log/journal ]; then break; fi
-            sleep 1
+          i=0
+          while [ "$i" -lt 120 ]; do
+            ${system}/sw/bin/journalctl -f -o short-monotonic --no-hostname && exit 0
+            i=$((i + 1))
+            ${pkgs.coreutils}/bin/sleep 1
           done
-          exec ${system}/sw/bin/journalctl -f -o short-monotonic --no-hostname
         ) &
 
         exec ${system}/init "$@"
