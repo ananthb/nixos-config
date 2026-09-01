@@ -293,6 +293,25 @@
           echo "coder-init: systemd will exit 255 without logging. The container" >&2
           echo "coder-init: needs CAP_SYS_ADMIN -- cap_add = [\"sys_admin\"]." >&2
         fi
+        # DIAGNOSTIC (remove once the agent is healthy): make the guest's
+        # journal visible. Docker only ever sees PID 1's stdout, which stops at
+        # stage 2's handover, and `docker exec` into this container fails
+        # EBUSY -- once systemd owns the cgroup tree kata's agent can no longer
+        # attach an exec process to the container scope. So there is currently
+        # no way to find out why coder-agent.service did not check in.
+        #
+        # This follower is forked from PID 1 before the exec, so it inherits
+        # fd 1: whatever it prints lands in `docker logs` / `nomad alloc logs`.
+        # ForwardToConsole was not used instead because /dev/console is only
+        # wired up for a TTY-allocated container, which this is not.
+        (
+          for _ in $(seq 1 60); do
+            if [ -d /run/log/journal ] || [ -d /var/log/journal ]; then break; fi
+            sleep 1
+          done
+          exec ${system}/sw/bin/journalctl -f -o short-monotonic --no-hostname
+        ) &
+
         exec ${system}/init "$@"
       '';
     in
