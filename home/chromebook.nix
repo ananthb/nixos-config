@@ -1,11 +1,10 @@
-# Chromebook home profile for the ChromeOS Baguette VM. Reuses the same shared
-# dev environment as home/coder.nix (helix, fish + yazelix, git, direnv) and
-# carries NO secrets: this guest has no YubiKey and no sops age key, so commits
-# stay unsigned here. Clipboard, xdg-open and the X/Wayland bridge come from the
-# baguette module rather than from this profile.
+# Chromebook home profile for the ChromeOS Baguette VM. Gets the whole CLI env
+# -- including git identity -- from modules/home/dev.nix, and keeps only what is
+# true of this guest alone: it is small, and it has no YubiKey and no sops age
+# key, so commits stay unsigned. Clipboard, xdg-open and the X/Wayland bridge
+# come from the baguette module rather than from this profile.
 {
   inputs,
-  pkgs,
   lib,
   username,
   ...
@@ -24,35 +23,12 @@
     username = lib.mkDefault username;
     homeDirectory = lib.mkDefault "/home/${username}";
     stateVersion = "25.05";
-
-    packages = with pkgs; [
-      delta
-      devenv
-      fd
-      fzf
-      gh
-      git
-      git-absorb
-      jq
-      lazygit
-      nix-output-monitor
-      ripgrep
-    ];
   };
 
   programs = {
-    home-manager.enable = true;
-
-    git = {
-      settings.user = {
-        name = "Ananth Bhaskararaman";
-        email = "antsub@gmail.com";
-        useConfigOnly = "true";
-      };
-      # dev.nix leaves git signing unset (mkDefault null); no YubiKey reaches
-      # this guest, so keep commits unsigned.
-      signing.signByDefault = lib.mkForce false;
-    };
+    # dev.nix leaves git signing unset (mkDefault null); no YubiKey reaches
+    # this guest, so keep commits unsigned.
+    git.signing.signByDefault = lib.mkForce false;
 
     # yazelix's home-manager module builds its runtime configs by reading from
     # an input source during activation, which `nix flake check` cannot resolve
