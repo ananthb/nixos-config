@@ -308,15 +308,20 @@
         # runs before systemd, so PATH is whatever the runtime handed PID 1 --
         # which is nothing. A bare `seq` or `sleep` is a "command not found".
         #
-        # journalctl -f exits non-zero while the journal does not exist yet and
-        # blocks forever once it does, so retrying it IS the wait.
+        # Wait for the journal to exist, then follow it. Do NOT drive this off
+        # journalctl's exit status: with no journal yet it prints "No journal
+        # files were found" and exits ZERO, so an `&& exit 0` retry loop quits
+        # on the first try and follows nothing.
         (
           i=0
-          while [ "$i" -lt 120 ]; do
-            ${system}/sw/bin/journalctl -f -o short-monotonic --no-hostname && exit 0
+          while [ "$i" -lt 300 ]; do
+            if [ -e /run/log/journal ] || [ -e /var/log/journal ]; then
+              exec ${system}/sw/bin/journalctl -f -o short-monotonic --no-hostname
+            fi
             i=$((i + 1))
             ${pkgs.coreutils}/bin/sleep 1
           done
+          echo "coder-init: no journal after 300s; journald never started" >&2
         ) &
 
         exec ${system}/init "$@"
