@@ -1,6 +1,6 @@
 # THE development environment. Every profile imports this and gets the same
-# CLI: helix, fish + yazelix (zellij + yazi), git, direnv, gpg, and the package
-# baseline below. There is deliberately no second "dev" file and no "common" --
+# CLI: helix, fish, zellij + yazi, git, direnv, gpg, and the package baseline
+# below. There is deliberately no second "dev" file and no "common" --
 # those existed side by side and drifted, so `git`, `mosh`, `htop` and friends
 # were copy-pasted across four profiles and `htop` reached only one of them.
 #
@@ -8,14 +8,12 @@
 # platform-specific. Those live in the consuming profile -- home/discovery.nix
 # is the only one with any, because it is the only host with key material.
 {
-  inputs,
   lib,
   pkgs,
   ...
 }: {
   imports = [
     ./helix.nix
-    inputs.yazelix.homeManagerModules.default
   ];
 
   # Building `man home-configuration.nix` forces nixpkgs' options.json doc
@@ -165,7 +163,15 @@
       };
     };
 
-    yazelix = {
+    # Plain zellij, declared here rather than arriving as a side effect.
+    # yazelix used to pull the multiplexer in transitively -- and on the Coder
+    # workspace that produced no `zellij` on PATH at all, out of 250 binaries.
+    # It also brought its own Helix build (a Steel-enabled fork), a second
+    # ~/.config/yazelix/helix config tree, its own cachix, and an activation
+    # that `nix flake check` could not evaluate. The one integration worth
+    # keeping -- yazi opening files into a pane -- is the opener below, which
+    # only ever needed $ZELLIJ.
+    zellij = {
       enable = true;
     };
 

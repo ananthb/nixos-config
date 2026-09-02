@@ -92,11 +92,6 @@
         git-hooks.follows = "git-hooks";
       };
     };
-
-    yazelix = {
-      url = "github:luccahuguet/yazelix/863f7fe37c19e9f001224aadb5adc0fdfc3479d2";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs = {
@@ -210,10 +205,11 @@
 
     # Full NixOS guest for the Coder dev workspace: systemd PID 1, the coder
     # agent as a service, dev env via home-manager. Kept as a let-binding rather
-    # than a nixosConfigurations output: `nix flake check` runs the nixos
-    # assertions/warnings pass on that output, which forces yazelix's
-    # import-from-derivation activation and fails under --no-build. It's still
-    # reusable as nixosModules.coder-vm and built via the coder-image package.
+    # than a nixosConfigurations output. That was originally to dodge yazelix's
+    # import-from-derivation activation under `nix flake check --no-build`;
+    # yazelix is gone, so this could likely become a real output now -- left as
+    # is because nothing depends on it being one. It is still reusable as
+    # nixosModules.coder-vm and built via the coder-image package.
     coderNixos = nixpkgs.lib.nixosSystem {
       specialArgs = {
         inherit inputs username;
