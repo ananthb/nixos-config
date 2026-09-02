@@ -108,8 +108,14 @@ in {
     ];
     casks = [
       "1password"
+      # "claude" is the desktop app. claude-code is NOT here on purpose: it
+      # comes from nixpkgs via modules/home/dev.nix, so darwin, the Coder
+      # workspace and the chromebook all run the same build. Neither Linux
+      # profile has Homebrew, so a cask here could only ever mean this Mac
+      # drifting to a different version than the workspace. The trade is that
+      # updates arrive with `nix flake update` rather than the app updating
+      # itself -- a store install cannot self-update.
       "claude"
-      "claude-code"
       "codex"
       "codex-app"
       "discord"
