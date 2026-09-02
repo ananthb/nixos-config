@@ -11,7 +11,37 @@
   lib,
   inputs,
   ...
-}: {
+}: let
+  # The Coder web terminal draws in the browser, so the glyphs come from the
+  # font on whatever machine that browser runs on -- a Chromebook, here. A font
+  # installed in this guest can never reach that rasterizer, and Coder's own
+  # terminal font setting is a closed enum of five faces
+  # (codersdk.TerminalFontName), none of them patched. So the only way a Nerd
+  # Font glyph renders is if the page carries the font itself.
+  #
+  # woff2 rather than the .ttf: 2.7M -> 1.2M, and it is inlined as base64 into
+  # a single HTML file, so that difference is the page weight. Regular only --
+  # bold is left to the browser to synthesise, because a second face would add
+  # another ~1.6M of base64 to buy a slightly better bold.
+  hackNerdWoff2 =
+    pkgs.runCommand "hack-nerd-font-mono.woff2" {
+      nativeBuildInputs = [pkgs.woff2];
+    } ''
+      cp ${pkgs.nerd-fonts.hack}/share/fonts/truetype/NerdFonts/Hack/HackNerdFontMono-Regular.ttf font.ttf
+      woff2_compress font.ttf
+      mv font.woff2 $out
+    '';
+
+  # The <style> block is built here, at eval time, so the 1.6M base64 string is
+  # written once into the store instead of being re-encoded on every boot.
+  ttydFontStyle = pkgs.runCommand "ttyd-font-style.html" {} ''
+    {
+      printf "%s" "<style>@font-face{font-family:'Hack Nerd Font Mono';font-style:normal;font-weight:400;font-display:block;src:url(data:font/woff2;base64,"
+      ${pkgs.coreutils}/bin/base64 -w0 ${hackNerdWoff2}
+      printf "%s" ") format('woff2');}</style>"
+    } > $out
+  '';
+in {
   imports = [
     inputs.home-manager.nixosModules.home-manager
     ../modules/options.nix
@@ -149,8 +179,10 @@
 
             # The SOCKS5 and HTTP proxies run in BOTH modes on purpose, and share
             # one port -- tailscaled demultiplexes them. In userspace mode they
-            # are the only way out; in TUN mode they are how a process resolves a
-            # MagicDNS name, since --accept-dns is off (see tailscale-up below).
+            # are the only way out. In TUN mode nothing needs them any more, now
+            # that --accept-dns hands resolution to 100.100.100.100 (see
+            # tailscale-up below); they stay so that a workspace which lands on
+            # a node without net_admin still has a way out rather than none.
             exec ${pkgs.tailscale}/bin/tailscaled \
               --state=/var/lib/tailscale/tailscaled.state \
               --socket=/run/tailscale/tailscaled.sock \
@@ -187,21 +219,102 @@
             # up with coder-1, coder-2, ... and no entry says whose box it is. The
             # jobspec passes ws-<owner>-<workspace>.
             #
-            # --accept-dns=false: tailscale's DNS manager takes over
-            # /etc/resolv.conf, and in this guest that file is written by the
-            # runtime and is the one thing the whole workspace depends on -- the
-            # agent dials coder.calculon.tech by name, and a guest that cannot
-            # resolve presents as a workspace that never starts. Reach tailnet
-            # names through the HTTP proxy instead. Revisit once TUN mode is
-            # actually live and there is somewhere safe to test the handover.
+            # --accept-dns=true: tailscale's DNS manager takes over
+            # /etc/resolv.conf, pointing it at 100.100.100.100 and forwarding
+            # everything that is not a tailnet name to whatever resolver was
+            # there before. In this guest that file is written by the runtime
+            # and is the one thing the whole workspace depends on -- the agent
+            # dials coder.calculon.tech by name, and a guest that cannot resolve
+            # presents as a workspace that never starts -- so this was not
+            # changed on faith. The handover was run on a live workspace first,
+            # behind a systemd-run timer armed to put the old file back if the
+            # shell was lost, and coder.calculon.tech, github.com,
+            # cache.nixos.org and the MagicDNS names all still resolved after
+            # the flip. It needs the real TUN from net_admin: in userspace mode
+            # there is no route to 100.100.100.100 and this would black-hole
+            # every lookup.
+            #
+            # This also picks up the tailnet's split-DNS route for `consul`,
+            # which points at pwu-compute1:53. That does NOT resolve today and
+            # is not meant to yet -- the tag:coder -> tag:server grant is scoped
+            # to 22, so the query is dropped rather than answered. Widening that
+            # grant to 53 is the separate decision that would turn it on.
             exec tailscale up \
               --auth-key="$TS_AUTHKEY" \
               --hostname="''${TS_HOSTNAME:-coder}" \
-              --accept-dns=false \
+              --accept-dns=true \
               --accept-routes=false \
               --ssh
           '';
         };
+      };
+
+      # A second browser terminal, existing only to carry the font Coder's own
+      # one cannot (see hackNerdWoff2 above). Reached as a coder_app, which is
+      # path-proxied rather than served on a subdomain: *.coder.calculon.tech
+      # resolves but has no certificate, because Cloudflare Universal SSL
+      # covers one label and that wildcard sits two deep.
+      ttyd = {
+        description = "Browser terminal that carries its own Nerd Font";
+        wantedBy = ["multi-user.target"];
+        after = ["network.target"];
+        path = [pkgs.ttyd pkgs.curl pkgs.perl pkgs.coreutils];
+        serviceConfig = {
+          User = "coder";
+          WorkingDirectory = "/home/coder";
+          RuntimeDirectory = "ttyd";
+          Restart = "on-failure";
+          RestartSec = 2;
+
+          # ttyd's client is one self-contained index.html compiled into the
+          # binary, with no file on disk to patch and no second asset to serve
+          # alongside it -- which is also why the font has to be inlined rather
+          # than linked. The only way to get a copy is to ask a running ttyd
+          # for it, so start a throwaway one on loopback, take its page, and
+          # inject the <style> into <head> before the real one starts with
+          # --index. Ports are tried in turn because this is a fixed range on a
+          # machine we do not exclusively own.
+          ExecStartPre = pkgs.writeShellScript "ttyd-build-index" ''
+            set -eu
+            raw="$RUNTIME_DIRECTORY/raw.html"
+            rm -f "$raw"
+            for port in $(seq 7690 7699); do
+              ttyd -p "$port" -i lo /bin/true &
+              pid=$!
+              for _ in $(seq 1 40); do
+                curl -sf -o "$raw" "http://127.0.0.1:$port/" && break
+                sleep 0.1
+              done
+              kill "$pid" 2>/dev/null || true
+              wait "$pid" 2>/dev/null || true
+              [ -s "$raw" ] && break
+            done
+            [ -s "$raw" ]
+            perl -0777 -pe '
+              BEGIN { open my $f, "<", $ENV{STYLE} or die $!; local $/; $s = <$f> }
+              s/<head>/<head>$s/ or die "ttyd index has no <head>\n"
+            ' "$raw" > "$RUNTIME_DIRECTORY/index.html"
+          '';
+
+          # No --base-path. Coder's path proxy strips the
+          # /@owner/workspace.agent/apps/<slug> prefix before forwarding
+          # (coderd/workspaceapps/proxy.go: "Web applications typically request
+          # paths relative to the root URL"), so ttyd sees / and its client,
+          # which builds the /token and /ws URLs from window.location, still
+          # addresses them through the prefix the browser is on. Setting
+          # --base-path here would make ttyd 404 every proxied request.
+          ExecStart = pkgs.writeShellScript "ttyd-start" ''
+            exec ttyd \
+              --port 7681 \
+              --interface lo \
+              --writable \
+              --index "$RUNTIME_DIRECTORY/index.html" \
+              --client-option 'fontFamily=Hack Nerd Font Mono, monospace' \
+              --client-option fontSize=14 \
+              ${pkgs.fish}/bin/fish --login
+          '';
+        };
+        environment.STYLE = "${ttydFontStyle}";
       };
     };
   };
