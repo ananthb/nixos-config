@@ -173,6 +173,41 @@
     # only ever needed $ZELLIJ.
     zellij = {
       enable = true;
+
+      settings = {
+        default_shell = "fish";
+        # The frames cost two columns and a row per pane and say nothing the
+        # status bar does not; pane names are in the tab bar.
+        pane_frames = false;
+        copy_on_select = true;
+        mouse_mode = true;
+        scroll_buffer_size = 50000;
+        # Resurrect panes after a restart. This matters more here than on a
+        # laptop: the workspace runs on a node that resets every few hours.
+        session_serialization = true;
+      };
+
+      # The yazelix arrangement, rebuilt as a plain layout: file tree on the
+      # left, work on the right. Deliberately NOT the default_layout -- `zellij`
+      # gives an ordinary session and `zellij --layout dev` gives this one. Set
+      # `default_layout = "dev"` above if you would rather have it always.
+      #
+      # yazi opens files into the right-hand pane through the `opener` further
+      # down this file, which only ever needed $ZELLIJ set.
+      layouts.dev = ''
+        layout {
+            pane size=1 borderless=true {
+                plugin location="zellij:tab-bar"
+            }
+            pane split_direction="vertical" {
+                pane size="25%" name="files" command="yazi"
+                pane name="work"
+            }
+            pane size=2 borderless=true {
+                plugin location="zellij:status-bar"
+            }
+        }
+      '';
     };
 
     yazi = {
