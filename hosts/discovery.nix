@@ -15,7 +15,13 @@ in {
     inputs.determinate.darwinModules.default
   ];
 
-  fonts.packages = [pkgs.hack-font];
+  # Hack Nerd Font, not plain Hack. zellij's UI separators and eza's
+  # `icons = "auto"` both draw from the Nerd Font private-use range, which
+  # stock Hack does not carry -- they render as blank boxes. Same family,
+  # patched glyphs. This is the copy that matters: nix-darwin puts it in
+  # /Library/Fonts where macOS apps actually look, whereas a font in
+  # home.packages only lands in the nix profile.
+  fonts.packages = [pkgs.nerd-fonts.hack];
 
   # This machine runs Determinate Nix, which manages its own daemon and
   # conflicts with nix-darwin's native Nix management. determinateNix.enable
@@ -120,6 +126,12 @@ in {
       "codex-app"
       "discord"
       "drata-agent"
+      # GUI apps stay casks. macOS wants a real .app bundle in /Applications
+      # -- Launchpad, Spotlight, the dock and `open -a` all key off it, and a
+      # nixpkgs build lands in the store instead. That is the split: GUI here,
+      # CLI from nixpkgs via modules/home/dev.nix (see claude-code above).
+      # Ghostty is also the terminal, so it is what has to carry the Hack Nerd
+      # Font -- set `font-family = "Hack Nerd Font Mono"` in its config.
       "ghostty"
       "gimp"
       "google-chrome"
