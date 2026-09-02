@@ -36,7 +36,7 @@
     gh
     git-absorb
     glab
-    hack-font
+    nerd-fonts.hack
     htop
     jq
     lazygit
@@ -127,6 +127,12 @@
       };
     };
 
+    # Glyphs below are Nerd Font codepoints verified present in
+    # nerd-fonts.hack (fc-query on HackNerdFontMono-Regular): branch U+E0A0,
+    # nixos U+F313, kubernetes U+F10FE, server U+E795, clock U+F017, lock
+    # U+F023, prompt U+276F. Two conventional choices are NOT used because
+    # that font lacks them and they render as blank boxes: starship's own
+    # default ssh_symbol 🖥 U+1F5A5, and the kubernetes wheel ☸ U+2638.
     starship = {
       enable = true;
       enableFishIntegration = true;
@@ -136,29 +142,34 @@
         directory = {
           truncation_length = 3;
           truncate_to_repo = true;
+          read_only = " ";
         };
-        git_branch.format = "[$branch]($style) ";
+        git_branch = {
+          symbol = " ";
+          format = "[$symbol$branch]($style) ";
+        };
         git_status.format = "([\\[$all_status$ahead_behind\\]]($style) )";
         nix_shell = {
           format = "[$symbol$state]($style) ";
-          symbol = "nix ";
+          symbol = " ";
         };
         kubernetes = {
           disabled = false;
-          format = "[$context(/$namespace)]($style) ";
+          symbol = "󱃾 ";
+          format = "[$symbol$context(/$namespace)]($style) ";
         };
         hostname = {
           ssh_only = true;
           format = "[$ssh_symbol$hostname]($style) ";
-          ssh_symbol = "ssh:";
+          ssh_symbol = " ";
         };
         cmd_duration = {
           min_time = 2000;
-          format = "[$duration]($style) ";
+          format = "[ $duration]($style) ";
         };
         character = {
-          success_symbol = "[>](bold green)";
-          error_symbol = "[>](bold red)";
+          success_symbol = "[❯](bold green)";
+          error_symbol = "[❯](bold red)";
         };
       };
     };
