@@ -77,3 +77,43 @@ jobs:
       - run: |
           nix build --no-link --print-build-logs \
             .#packages.x86_64-linux.coder-image
+
+  # Tell the platform repo to rebuild the workspace image, now that the closure
+  # it needs is in cachix. The receiving end has existed the whole time --
+  # calculon-tech/platform .github/workflows/coder-images.yml declares
+  # `repository_dispatch: types: [nixos-image]` -- but nothing here ever sent
+  # the event, so GHCR only moved when someone dispatched the workflow by hand.
+  #
+  # needs: cache-warm, not just lint/eval. That job builds
+  # packages.x86_64-linux.coder-image and pushes the closure; the image job on
+  # the other side runs `nix build --max-jobs 0`, which refuses to compile
+  # anything locally and fails in seconds if the path is not in the cache yet.
+  # Its own comment says "the repository_dispatch can outrun it" -- ordering it
+  # behind cache-warm here is what stops that.
+  #
+  # PLATFORM_DISPATCH_TOKEN because secrets.GITHUB_TOKEN is scoped to this repo
+  # and these are different owners (ananthb -> calculon-tech), so it cannot
+  # reach across. Managed in calculon-tech/platform tf/github/ananth.
+  dispatch-coder-images:
+    name: dispatch coder-images
+    needs: [lint, eval, cache-warm]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.PLATFORM_DISPATCH_TOKEN }}
+    steps:
+      # Degrade to a warning rather than a red main if the secret is not there
+      # yet: it is created by terraform in the platform repo (tf/github/ananth),
+      # so on a first run the two halves can land in either order.
+      - name: no token
+        if: env.GH_TOKEN == ''
+        run: |
+          echo "::warning::PLATFORM_DISPATCH_TOKEN is unset, so coder-images was not triggered. Dispatch it by hand, and see tf/github/ananth/actions-secrets.tf in calculon-tech/platform."
+      - name: repository_dispatch → calculon-tech/platform
+        if: env.GH_TOKEN != ''
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          gh api --method POST repos/calculon-tech/platform/dispatches \
+            -f event_type=nixos-image \
+            -f "client_payload[sha]=$SHA"
