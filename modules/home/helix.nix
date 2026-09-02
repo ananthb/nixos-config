@@ -1,13 +1,9 @@
-# Helix editor: one Nix-defined config, materialised into both Helix config
-# trees that exist on these machines.
+# Helix editor: one Nix-defined config in ~/.config/helix.
 #
-# yazelix's managed Helix launches with `--config-dir ~/.config/yazelix/helix`
-# and merges that tree's config.toml over its own generated defaults; it never
-# reads ~/.config/helix (yazelix's helix_managed_config_contract.md is explicit
-# that personal Helix config stays untouched, and its stub writer only ever
-# creates a steel_plugins README there). Vanilla `hx` reads only ~/.config/helix.
-# Pointing both trees at the same generated files is what makes `hx` the same
-# editor inside and outside a yazelix session.
+# There used to be a second tree at ~/.config/yazelix/helix, because yazelix
+# shipped its own Helix binary that read only that path; both were pointed at
+# the same generated files so `hx` behaved identically inside and outside a
+# yazelix session. yazelix is gone, so there is one Helix and one config again.
 #
 # Language tooling is a catalog rather than a flat package list so that hosts
 # can drop what they never edit -- see dev.helix.disable in home/chromebook.nix.
@@ -29,7 +25,6 @@
     foldl'
     mapAttrs
     mapAttrsToList
-    mkIf
     mkOption
     optional
     optionalAttrs
@@ -49,9 +44,9 @@
 
   # One entry per language group.
   #
-  #   packages  tools that must be on PATH. These go in home.packages, not
-  #             programs.helix.extraPackages: that option only wraps the `hx`
-  #             binary's PATH, and yazelix's Helix is a different binary.
+  #   packages  tools that must be on PATH. These go in home.packages rather
+  #             than programs.helix.extraPackages, which only wraps the `hx`
+  #             binary's own PATH -- these tools are wanted in the shell too.
   #   langs     keyed by Helix language id and merged across entries, so more
   #             than one entry can contribute servers to the same language.
   #   efm       efm-langserver diagnostic sources, replacing the none-ls
@@ -392,15 +387,6 @@ in {
 
         language = languageList;
       };
-    };
-
-    # The second config tree. Guarded because a host with yazelix off (see
-    # home/chromebook.nix) has no ~/.config/yazelix to populate.
-    xdg.configFile = mkIf config.programs.yazelix.enable {
-      "yazelix/helix/config.toml".source =
-        config.xdg.configFile."helix/config.toml".source;
-      "yazelix/helix/languages.toml".source =
-        config.xdg.configFile."helix/languages.toml".source;
     };
   };
 }

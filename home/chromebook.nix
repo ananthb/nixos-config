@@ -25,25 +25,9 @@
     stateVersion = "25.05";
   };
 
-  programs = {
-    # dev.nix leaves git signing unset (mkDefault null); no YubiKey reaches
-    # this guest, so keep commits unsigned.
-    git.signing.signByDefault = lib.mkForce false;
-
-    # yazelix's home-manager module builds its runtime configs by reading from
-    # an input source during activation, which `nix flake check` cannot resolve
-    # ("path ... is not valid") once this host is a real nixosConfigurations
-    # output. coderNixos dodges that by not being an output and
-    # homeConfigurations are invisible to flake check, so this is the first
-    # place CI ever evaluates it. Dropping it here also buys back store on a
-    # 20G VM; yazi is configured separately in dev.nix and survives, and helix
-    # reads ~/.config/helix here rather than the yazelix-managed config tree.
-    # discovery and coder keep yazelix.
-    yazelix.enable = lib.mkForce false;
-
-    # yazelix was the only thing pulling in the multiplexer.
-    zellij.enable = true;
-  };
+  # dev.nix leaves git signing unset (mkDefault null); no YubiKey reaches this
+  # guest, so keep commits unsigned.
+  programs.git.signing.signByDefault = lib.mkForce false;
 
   # The language catalog in modules/home/helix.nix is sized for a
   # workstation. On a 20G VM the heavyweights cost more store than they earn
