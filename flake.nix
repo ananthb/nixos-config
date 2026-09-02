@@ -289,36 +289,6 @@
           echo "coder-init: systemd will exit 255 without logging. The container" >&2
           echo "coder-init: needs CAP_SYS_ADMIN -- cap_add = [\"sys_admin\"]." >&2
         fi
-        # DIAGNOSTIC (remove once the agent is healthy): make the guest's
-        # journal visible. Docker only ever sees PID 1's stdout, which stops at
-        # stage 2's handover, and `docker exec` into this container fails
-        # EBUSY -- once systemd owns the cgroup tree kata's agent can no longer
-        # attach an exec process to the container scope. So there is currently
-        # no way to find out why coder-agent.service did not check in.
-        #
-        # This follower is forked from PID 1 before the exec, so it inherits
-        # fd 1: whatever it prints lands in `docker logs` / `nomad alloc logs`.
-        # ForwardToConsole was not used instead because /dev/console is only
-        # wired up for a TTY-allocated container, which this is not.
-        # Every command here is an absolute store path on purpose: this script
-        # runs before systemd, so PATH is whatever the runtime handed PID 1 --
-        # which is nothing. A bare `seq` or `sleep` is a "command not found".
-        #
-        # Wait for the journal to exist, then follow it. Do NOT drive this off
-        # journalctl's exit status: with no journal yet it prints "No journal
-        # files were found" and exits ZERO, so an `&& exit 0` retry loop quits
-        # on the first try and follows nothing.
-        (
-          i=0
-          while [ "$i" -lt 300 ]; do
-            if [ -e /run/log/journal ] || [ -e /var/log/journal ]; then
-              exec ${system}/sw/bin/journalctl -f -o short-monotonic --no-hostname
-            fi
-            i=$((i + 1))
-            ${pkgs.coreutils}/bin/sleep 1
-          done
-          echo "coder-init: no journal after 300s; journald never started" >&2
-        ) &
 
         exec ${system}/init "$@"
       '';

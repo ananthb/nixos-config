@@ -6,6 +6,7 @@
 # script is baked into the image. The dev environment is the same home/coder.nix
 # profile used by homeConfigurations."coder@x86_64-linux".
 {
+  config,
   pkgs,
   lib,
   inputs,
@@ -49,30 +50,159 @@
   security.sudo.wheelNeedsPassword = false;
   programs.fish.enable = true;
 
-  environment.systemPackages = with pkgs; [coder curl git];
+  environment.systemPackages = with pkgs; [coder curl git tailscale];
 
-  # Fetch the version-matched agent from the Coder server at boot (mirrors what
-  # Coder's generated init script does) and exec it. PassEnvironment forwards the
-  # jobspec-injected env from PID 1 to the service.
-  systemd.services.coder-agent = {
-    description = "Coder workspace agent";
-    wantedBy = ["multi-user.target"];
-    after = ["network-online.target"];
-    wants = ["network-online.target"];
-    path = [pkgs.curl];
-    serviceConfig = {
-      User = "coder";
-      WorkingDirectory = "/home/coder";
-      PassEnvironment = "CODER_AGENT_URL CODER_AGENT_TOKEN";
-      ExecStart = pkgs.writeShellScript "coder-agent-start" ''
-        set -eu
-        bin="$(mktemp -d)/coder"
-        curl -fsSL "$CODER_AGENT_URL/bin/coder-linux-amd64" -o "$bin"
-        chmod +x "$bin"
-        exec "$bin" agent
-      '';
-      Restart = "on-failure";
-      RestartSec = 5;
+  systemd = {
+    # /dev in the kata guest is a plain tmpfs the runtime populates from the OCI
+    # spec, not devtmpfs, so the tun node tailscaled wants is simply absent --
+    # even though the guest kernel does carry the driver. Opening a hand-made
+    # node returns EBADFD ("file descriptor in bad state"), not ENODEV, which is
+    # how you tell those two apart. mknod needs CAP_MKNOD, which is already in
+    # the container's bounding set.
+    tmpfiles.rules = [
+      "d /dev/net 0755 root root -"
+      "c! /dev/net/tun 0600 root root - 10:200"
+    ];
+
+    # Fetch the version-matched agent from the Coder server at boot (mirrors what
+    # Coder's generated init script does) and exec it. PassEnvironment forwards the
+    # jobspec-injected env from PID 1 to the service.
+    services = {
+      coder-agent = {
+        description = "Coder workspace agent";
+        wantedBy = ["multi-user.target"];
+        after = ["network-online.target"];
+        wants = ["network-online.target"];
+        path = [pkgs.curl];
+        serviceConfig = {
+          User = "coder";
+          WorkingDirectory = "/home/coder";
+          PassEnvironment = "CODER_AGENT_URL CODER_AGENT_TOKEN";
+          ExecStart = pkgs.writeShellScript "coder-agent-start" ''
+            set -eu
+            bin="$(mktemp -d)/coder"
+            curl -fsSL "$CODER_AGENT_URL/bin/coder-linux-amd64" -o "$bin"
+            chmod +x "$bin"
+            exec "$bin" agent
+          '';
+          Restart = "on-failure";
+          RestartSec = 5;
+        };
+      };
+
+      # --- Tailnet membership --------------------------------------------------
+      # The workspace joins cow-justice.ts.net as an ephemeral tag:coder node. The
+      # auth key arrives as TS_AUTHKEY in the container environment (Nomad jobspec
+      # -> PID 1 -> PassEnvironment), the same route CODER_AGENT_TOKEN takes.
+      #
+      # /var/lib is container rootfs, not the persistent home volume, so tailscaled
+      # comes up with no state every boot and logs in fresh each time. That is why
+      # the key is ephemeral: a registration that outlived the guest would leave a
+      # dead tailnet node behind on every single workspace start.
+      #
+      # services.tailscale is deliberately NOT used. That module takes tailscaled's
+      # unit from the package (systemd.packages) and bakes the TUN mode into a
+      # drop-in `Environment=FLAGS=--tun <name>` at BUILD time. This guest has to
+      # pick the mode at RUN time (see the probe below), so the unit is written out
+      # here rather than fighting a drop-in whose merge order is not ours to set.
+      tailscaled = {
+        description = "Tailscale node agent";
+        wantedBy = ["multi-user.target"];
+        after = ["network-online.target"];
+        wants = ["network-online.target"];
+        # iproute2 for the probe; the other two mirror what nixpkgs' own tailscale
+        # module puts on this unit -- `su` (via the wrapper dir) and `getent` are
+        # what Tailscale SSH uses to start a session as the right user.
+        path = [pkgs.iproute2 pkgs.getent (dirOf config.security.wrapperDir)];
+        serviceConfig = {
+          Type = "notify";
+          StateDirectory = "tailscale";
+          RuntimeDirectory = "tailscale";
+          RuntimeDirectoryMode = "0755";
+          Restart = "on-failure";
+          RestartSec = 5;
+          ExecStopPost = "${pkgs.tailscale}/bin/tailscaled --cleanup";
+          ExecStart = pkgs.writeShellScript "tailscaled-start" ''
+            # Pick the TUN mode by PROBING, not by inferring: creating and then
+            # deleting a throwaway tun exercises CAP_NET_ADMIN, the /dev node and
+            # the driver in one go, which is exactly the set tailscaled needs.
+            # Reading CapBnd out of /proc would test only the first of the three.
+            #
+            # Today the probe fails: the docker driver's allow_caps on pwu-compute1
+            # does not list net_admin, so the workspace's bounding set is
+            # 0xa82425fb and `ip tuntap add` returns EPERM. Userspace networking
+            # needs neither the capability nor the device, so the node still joins
+            # the tailnet -- it just routes through netstack instead of a real
+            # interface. To get the real one: add net_admin to allow_caps in
+            # flatcar/pwu-compute1.bu AND to cap_add in the workspace jobspec, in
+            # that order. A task asking for a capability the plugin does not allow
+            # is rejected outright, so doing the jobspec first breaks placement.
+            if ip tuntap add dev ts-probe mode tun 2>/dev/null; then
+              ip tuntap del dev ts-probe mode tun
+              tun=tailscale0
+            else
+              echo "tailscaled: no CAP_NET_ADMIN; using userspace networking." >&2
+              echo "tailscaled: inbound and Tailscale SSH work as normal, but" >&2
+              echo "tailscaled: OUTBOUND needs the proxy on localhost:1055." >&2
+              tun=userspace-networking
+            fi
+
+            # The SOCKS5 and HTTP proxies run in BOTH modes on purpose, and share
+            # one port -- tailscaled demultiplexes them. In userspace mode they
+            # are the only way out; in TUN mode they are how a process resolves a
+            # MagicDNS name, since --accept-dns is off (see tailscale-up below).
+            exec ${pkgs.tailscale}/bin/tailscaled \
+              --state=/var/lib/tailscale/tailscaled.state \
+              --socket=/run/tailscale/tailscaled.sock \
+              --port=41641 \
+              --tun="$tun" \
+              --socks5-server=localhost:1055 \
+              --outbound-http-proxy-listen=localhost:1055
+          '';
+        };
+      };
+
+      tailscale-up = {
+        description = "Join the tailnet";
+        wantedBy = ["multi-user.target"];
+        after = ["tailscaled.service"];
+        wants = ["tailscaled.service"];
+        path = [pkgs.tailscale];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          PassEnvironment = "TS_AUTHKEY TS_HOSTNAME";
+          ExecStart = pkgs.writeShellScript "tailscale-up" ''
+            set -eu
+            # No key is not an error: the image must still boot into a usable
+            # workspace on a template version that predates TS_AUTHKEY, and on a
+            # bare `docker run` of it done by hand for debugging.
+            if [ -z "''${TS_AUTHKEY:-}" ]; then
+              echo "tailscale-up: TS_AUTHKEY is empty; staying logged out." >&2
+              exit 0
+            fi
+
+            # --hostname because networking.hostName is the constant "coder" for
+            # every workspace built from this image; without it the tailnet fills
+            # up with coder-1, coder-2, ... and no entry says whose box it is. The
+            # jobspec passes ws-<owner>-<workspace>.
+            #
+            # --accept-dns=false: tailscale's DNS manager takes over
+            # /etc/resolv.conf, and in this guest that file is written by the
+            # runtime and is the one thing the whole workspace depends on -- the
+            # agent dials coder.calculon.tech by name, and a guest that cannot
+            # resolve presents as a workspace that never starts. Reach tailnet
+            # names through the HTTP proxy instead. Revisit once TUN mode is
+            # actually live and there is somewhere safe to test the handover.
+            exec tailscale up \
+              --auth-key="$TS_AUTHKEY" \
+              --hostname="''${TS_HOSTNAME:-coder}" \
+              --accept-dns=false \
+              --accept-routes=false \
+              --ssh
+          '';
+        };
+      };
     };
   };
 
