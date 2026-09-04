@@ -94,6 +94,36 @@
 
   environment.systemPackages = with pkgs; [curl git];
 
+  # `sudo systemctl start nixos-upgrade` rebuilds this guest in place against
+  # main. That is the whole point of it being here: picking up a config change
+  # used to mean cutting a release, downloading a fresh rootfs and recreating
+  # the VM with `vmc create`, which also throws away the account binding
+  # described above. The service is the same one `nixos-rebuild switch --flake
+  # .#chromebook` performs, minus needing a checkout in the guest.
+  #
+  # The module appends `--refresh` to the flags on its own whenever `flake` is
+  # set, so a github: ref is re-resolved rather than served from nix's tarball
+  # cache -- without it a `switch` minutes after a push would rebuild the commit
+  # before it.
+  #
+  # allowReboot stays at its default of false. A reboot here tears down the user
+  # manager that garcon and sommelier live under, which is what ChromeOS waits on
+  # to consider the VM up (see the account note above).
+  #
+  # persistent = false on purpose, which is NOT the module's default. This guest
+  # is off far more than it is on, so with Persistent=true systemd would treat
+  # essentially every boot as a missed monthly window and start a full rebuild
+  # the moment the VM came up. The timer is a backstop; the on-demand
+  # `systemctl start` is the intended path. Flip this to true to trade that
+  # ambush for the guarantee that the monthly run actually happens.
+  system.autoUpgrade = {
+    enable = true;
+    flake = "github:ananthb/nixos-config#chromebook";
+    dates = "monthly";
+    persistent = false;
+    randomizedDelaySec = "45min";
+  };
+
   home-manager = {
     useGlobalPkgs = true;
     useUserPackages = true;
