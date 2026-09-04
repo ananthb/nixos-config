@@ -15,6 +15,19 @@ name: Baguette image
 on:
   release:
     types: [published]
+  # First of every month, 03:17 UTC. The Chromebook guest bootstraps from
+  # releases/latest/download/baguette_rootfs.img.zst, so without a cadence the
+  # published image silently pins to whenever a release was last cut by hand --
+  # which is exactly how it ended up a day behind the commit that added htop and
+  # claude-code, on a VM that had never rebuilt itself since.
+  #
+  # The scheduled run publishes its own release (see below), and that release's
+  # `published` event does NOT re-trigger this workflow: events raised with
+  # GITHUB_TOKEN never start another workflow run, which is what keeps this from
+  # looping. Minute is deliberately not 0 -- the top of the hour is the most
+  # contended slot on hosted runners.
+  schedule:
+    - cron: "17 3 1 * *"
   workflow_dispatch:
 
 concurrency:
@@ -54,6 +67,25 @@ jobs:
         run: |
           gh release upload "${{ github.event.release.tag_name }}" \
             baguette_rootfs.img.zst --clobber
+
+      # The monthly run has no release to attach to, so it cuts one. Same
+      # baguette-YYYY-MM-DD tag shape the hand-cut releases use, so
+      # releases/latest keeps pointing at a real image either way. Guarded by
+      # `gh release view` because a manual release cut on the same UTC day would
+      # already own the tag, and `gh release create` fails outright on a
+      # duplicate rather than reusing it.
+      - name: publish monthly release
+        if: github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="baguette-$(date -u +%Y-%m-%d)"
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" \
+              --title "Baguette image $(date -u +%Y-%m-%d)" \
+              --notes "Monthly automated build of the ChromeOS Baguette rootfs from main (${GITHUB_SHA:0:7}). Bootstrap instructions are in hosts/chromebook.nix; an already-running guest picks this up with \`systemctl start nixos-upgrade\` instead."
+          fi
+          gh release upload "$tag" baguette_rootfs.img.zst --clobber
 
       # Manual runs have no release to attach to, so they just leave an
       # artifact -- enough to check the build still works without cutting one.
