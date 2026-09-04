@@ -296,6 +296,15 @@
       pkgs.dockerTools.buildLayeredImage {
         name = "coder-nixos";
         tag = "latest";
+        # Ship /nix/var/nix/db. Without it every path in the guest's store is
+        # "invalid" to nix, so `nix-store --verify --check-contents` reports
+        # nothing and `--repair-path` refuses to run -- which is how a starship
+        # binary that had been truncated to 4521984 of its 15003888 bytes
+        # (a clean page boundary, so a partial extract) sat there segfaulting
+        # `starship init fish` on every new shell with no way to find it or any
+        # other damaged path. Costs a few MB of image and makes the store
+        # verifiable and repairable in place.
+        includeNixDB = true;
         # `init` is deliberately NOT in contents: entries there are copied into
         # the rootfs and must be directories, so a bare script fails the
         # customisation layer with "Not a directory". It does not need to be --
