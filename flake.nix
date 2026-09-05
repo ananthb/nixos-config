@@ -245,6 +245,24 @@
       ];
     };
 
+    # fleet-compute3 — the third compute node of the fleet cluster. Built out here,
+    # deployed by nobody yet: ananthb/machines still owns the running box (as
+    # "compute3") and is held at the configuration it is actually running, so
+    # there is a known-good state to fall back to. Cutting over is a deliberate
+    # act, not something a timer does — note the absence of system.autoUpgrade
+    # in the host, and the unresolved bootloader question at the top of it.
+    nixosConfigurations.fleet-compute3 = nixpkgs.lib.nixosSystem {
+      specialArgs = {
+        inherit inputs username;
+        hostname = "fleet-compute3";
+        system = "x86_64-linux";
+      };
+      modules = [
+        {nixpkgs.pkgs = pkgsFor "x86_64-linux";}
+        ./hosts/fleet-compute3
+      ];
+    };
+
     # Compressed btrfs rootfs for `vmc create --vm-type BAGUETTE --source`.
     # Buildable on any aarch64-linux host, including from inside the VM itself.
     packages.aarch64-linux.baguette-zimage =
