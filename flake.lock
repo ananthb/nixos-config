@@ -41,11 +41,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1784611702,
-        "narHash": "sha256-eblfTQvOZuGjgClDm5ixtCZuNFLz73K1CVPCjPGi9UE=",
+        "lastModified": 1788728639,
+        "narHash": "sha256-epuY5PbZkSrxwFQ9jeAHqETiduzT6DJqnhMAbBBT/Uw=",
         "owner": "ananthb",
         "repo": "cosmonaut",
-        "rev": "1bc79f3eac111bdc9d20d147e484d706ee137c2a",
+        "rev": "c3340841e69db43d5f34323e1fc0de643a118257",
         "type": "github"
       },
       "original": {

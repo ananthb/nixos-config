@@ -123,11 +123,13 @@ in {
   programs = {
     cosmonaut = {
       enable = true;
-      defaultTarget = "rpcpool";
-      targets.rpcpool = {
-        repository = "rpcpool/rpcpool";
-        workspacePath = "/workspaces";
-      };
+      # Coder workspaces only — the github provider would otherwise nag
+      # about codespace auth just because gh is installed for git.
+      workspaceProvider = "coder";
+      providers.github.enable = false;
+      # Remote shells attach to a persistent zellij session that
+      # survives SSH drops.
+      ssh.multiplexer = "zellij";
     };
 
     nh = {
