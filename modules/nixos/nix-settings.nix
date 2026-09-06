@@ -3,7 +3,7 @@
 _: {
   nix = {
     settings = {
-      experimental-features = "nix-command flakes";
+      experimental-features = ["nix-command" "flakes"];
       substituters = [
         "https://ananthb.cachix.org"
         "https://nix-community.cachix.org"
