@@ -593,15 +593,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1788526291,
-        "narHash": "sha256-grTL5faZ1iu/RheKoJqZLcXV3Okpjt8BEaP0XFw/ARU=",
-        "owner": "aldur",
+        "lastModified": 1788730084,
+        "narHash": "sha256-xgJBKqJXJNbSeWYeaCvZUtPAC6DpexoFyOnXLaMhuas=",
+        "owner": "ananthb",
         "repo": "nixos-crostini",
-        "rev": "922ce98c88cc51b03842dd224e90cf6c97100b67",
+        "rev": "2de87956d677c6a9989dd9b20a4014bfbd96255b",
         "type": "github"
       },
       "original": {
-        "owner": "aldur",
+        "owner": "ananthb",
+        "ref": "fix/journald-settings",
         "repo": "nixos-crostini",
         "type": "github"
       }
