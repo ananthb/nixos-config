@@ -8,6 +8,7 @@
 # platform-specific. Those live in the consuming profile -- home/discovery.nix
 # is the only one with any, because it is the only host with key material.
 {
+  inputs,
   lib,
   pkgs,
   ...
@@ -43,6 +44,12 @@
     mosh
     nix-output-monitor
     ripgrep
+    # tmux is here for aoe, not as a second multiplexer: aoe runs each agent
+    # in its own tmux session and has no zellij backend (upstream #2015,
+    # closed not-planned). Sessions stay in zellij; attach to aoe's tmux from
+    # a pane when needed.
+    tmux
+    inputs.agent-of-empires.packages.${pkgs.stdenv.hostPlatform.system}.aoe-with-web
   ];
 
   programs = {
