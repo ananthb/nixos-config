@@ -648,16 +648,15 @@
         ]
       },
       "locked": {
-        "lastModified": 1788730084,
-        "narHash": "sha256-xgJBKqJXJNbSeWYeaCvZUtPAC6DpexoFyOnXLaMhuas=",
+        "lastModified": 1789233189,
+        "narHash": "sha256-td8QtQL2gamwTMscrjfmzyIIYOmTXRxt6IIyUA4Mcdw=",
         "owner": "ananthb",
         "repo": "nixos-crostini",
-        "rev": "2de87956d677c6a9989dd9b20a4014bfbd96255b",
+        "rev": "0c1f67869473104a057d91bf31e730ed5684f3fe",
         "type": "github"
       },
       "original": {
         "owner": "ananthb",
-        "ref": "fix/journald-settings",
         "repo": "nixos-crostini",
         "type": "github"
       }
@@ -885,11 +884,11 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1788294306,
-        "narHash": "sha256-b8kXoBxYXs+FLxdQG2qttDP07vQsE2EL7IuOzk5W2Lg=",
+        "lastModified": 1789235779,
+        "narHash": "sha256-iWkfpqtLbeHc+9RH6tWvWD+EIcgreVfbIPKXnWa8oBg=",
         "owner": "ananthb",
         "repo": "scurry",
-        "rev": "b59ccdfbf0d5c0ce831aba14f2c858fa81c0d5ea",
+        "rev": "cdb8eca1918328af7417cca6c36fbc0c5b9a6120",
         "type": "github"
       },
       "original": {
