@@ -80,10 +80,7 @@
     # integration module (vshd, maitred, garcon, sommelier) plus the btrfs
     # rootfs image builders. See hosts/chromebook.nix.
     nixos-crostini = {
-      # Fork branch until aldur/nixos-crostini#26 lands: upstream still
-      # sets the removed services.journald.extraConfig, which fails
-      # evaluation on current nixpkgs.
-      url = "github:ananthb/nixos-crostini/fix/journald-settings";
+      url = "github:ananthb/nixos-crostini";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
