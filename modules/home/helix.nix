@@ -232,7 +232,7 @@
     };
 
     yaml = {
-      packages = [pkgs.yaml-language-server pkgs.yamlfix pkgs.yamllint pkgs.ansible-lint];
+      packages = [pkgs.yaml-language-server pkgs.yamlfix pkgs.yamllint];
       langs.yaml = {
         servers = ["yaml-language-server"];
         auto-format = true;
@@ -250,6 +250,14 @@
           lint-formats = ["%f:%l:%c: [%t%*[a-z]] %m"];
           lint-after-open = true;
         }
+      ];
+    };
+
+    # Split from yaml so a host can drop it: ansible-lint pulls ansible-core
+    # and python3.14, ~0.9 GiB.
+    ansible = {
+      packages = [pkgs.ansible-lint];
+      efm.yaml = [
         {
           # Scoped to repos that are actually Ansible, otherwise every stray
           # YAML file in a repo picks up playbook rules.
