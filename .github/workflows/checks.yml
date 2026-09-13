@@ -78,6 +78,23 @@ jobs:
           nix build --no-link --print-build-logs \
             .#packages.x86_64-linux.coder-image
 
+      - name: closure sizes
+        run: |
+          nix build --no-link .#packages.x86_64-linux.coder-system
+          p=$(nix eval --raw .#packages.x86_64-linux.coder-system)
+          {
+            echo "## Workspace guest closure"
+            echo
+            echo "Total: $(nix path-info -S "$p" | awk '{printf "%.2f GiB", $2/1073741824}')"
+            echo
+            echo '```'
+            nix path-info -rS "$p" \
+              | sort -k2 -rn \
+              | head -40 \
+              | awk '{printf "%8.1f MB  %s\n", $2/1048576, substr($1,45)}'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   # Tell the platform repo to rebuild the workspace image, now that the closure
   # it needs is in cachix. The receiving end has existed the whole time --
   # calculon-tech/platform .github/workflows/coder-images.yml declares
