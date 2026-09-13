@@ -30,4 +30,6 @@
   # dev.nix leaves git signing unset (mkDefault null); the VM has no YubiKey,
   # so keep commits unsigned here.
   programs.git.signing.signByDefault = lib.mkForce false;
+
+  dev.helix.disable = ["c" "ltex" "ansible"];
 }
