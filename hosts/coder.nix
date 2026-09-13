@@ -82,6 +82,9 @@ in {
 
   environment.systemPackages = with pkgs; [coder curl git tailscale];
 
+  # Reduce image size.
+  documentation.enable = false;
+
   systemd = {
     # /dev in the kata guest is a plain tmpfs the runtime populates from the OCI
     # spec, not devtmpfs, so the tun node tailscaled wants is simply absent --
