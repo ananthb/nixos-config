@@ -4,15 +4,6 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
-    # Agent of Empires: tmux-based session manager for parallel coding agents,
-    # with a web dashboard. Not in nixpkgs; its flake builds from source with
-    # crane, so every host compiles it once per bump (the coder image gets it
-    # from cachix via cache-warm).
-    agent-of-empires = {
-      url = "github:agent-of-empires/agent-of-empires";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     askpass-homebrew-tap = {
       url = "github:theseal/homebrew-ssh-askpass";
       flake = false;
