@@ -32,6 +32,7 @@
     coder
     delta
     devenv
+    forgejo-cli # fj: the forge at calculon.tech, as gh is to GitHub
     fzf
     gh
     git-absorb
