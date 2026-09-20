@@ -94,6 +94,23 @@
 
   environment.systemPackages = with pkgs; [curl git];
 
+  # nixpkgs writes /etc/sysctl.d/55-nixos-aslr-entropy.conf by grepping
+  # CONFIG_ARCH_MMAP_RND_BITS_MAX out of `boot.kernelPackages.kernel` -- the
+  # kernel NixOS built -- and pinning vm.mmap_rnd_bits to it. This guest never
+  # boots that kernel. crosvm boots it with ChromeOS's own, built with a
+  # narrower virtual address space, and its mmap_rnd_bits ceiling is far below
+  # the 33 an aarch64 48-bit-VA NixOS kernel asks for. The write returns EINVAL
+  # ("Couldn't write '33' to 'vm/mmap_rnd_bits'"), systemd-sysctl.service
+  # fails, and switch-to-configuration exits 4 even though the switch itself
+  # was fine.
+  #
+  # Nothing here can know the right number at eval time -- the running kernel
+  # is chosen by the host, not by this flake -- so drop the file rather than
+  # guess, and leave that kernel's own ASLR entropy at whatever it booted with.
+  # boot.kernel.sysctl cannot do this: it lands in 60-nixos.conf, which systemd
+  # applies after 55-, so the bad value is still parsed from the earlier file.
+  environment.etc."sysctl.d/55-nixos-aslr-entropy.conf".enable = false;
+
   # `sudo systemctl start nixos-upgrade` rebuilds this guest in place against
   # main. That is the whole point of it being here: picking up a config change
   # used to mean cutting a release, downloading a fresh rootfs and recreating
