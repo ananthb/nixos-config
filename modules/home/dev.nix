@@ -28,6 +28,7 @@
   # `delta` IS listed: git uses it as the pager via settings, which does not
   # pull the package in on its own.
   home.packages = with pkgs; [
+    antigravity-cli
     claude-code
     coder
     delta

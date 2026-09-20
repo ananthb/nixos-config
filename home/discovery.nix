@@ -78,7 +78,6 @@ in {
     # is not repeated here.
     packages = with pkgs;
       [
-        antigravity-cli
         aria2 # one-off torrent/magnet downloads: aria2c "magnet:?..."
         codex
         flyctl
