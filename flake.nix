@@ -52,6 +52,14 @@
       flake = false;
     };
 
+    # Packages for AI coding agents, refreshed daily. Source of orca
+    # (hosts/coder.nix). Following our nixpkgs forgoes their cache, but the
+    # package is a patchelf'd binary and cheap to build.
+    llm-agents = {
+      url = "github:numtide/llm-agents.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     nix-darwin = {
       url = "github:nix-darwin/nix-darwin/master";
       inputs.nixpkgs.follows = "nixpkgs";
