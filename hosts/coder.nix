@@ -145,7 +145,13 @@ in {
         serviceConfig = {
           User = "coder";
           WorkingDirectory = "/home/coder";
-          PassEnvironment = "CODER_AGENT_URL CODER_AGENT_TOKEN";
+          # FORGEJO_* so every shell the agent spawns can push to the forge.
+          # The Nomad template stanza that renders them is in the workspace
+          # template (calculon-tech/platform, tf/coder/templates/nixos); the
+          # git credential helper that consumes them is in home/coder.nix.
+          # They are absent on a `docker run` of this image by hand, and the
+          # helper is written to stay quiet when they are.
+          PassEnvironment = "CODER_AGENT_URL CODER_AGENT_TOKEN FORGEJO_TOKEN FORGEJO_USER";
           ExecStart = pkgs.writeShellScript "coder-agent-start" ''
             set -eu
             bin="$(mktemp -d)/coder"
@@ -302,6 +308,9 @@ in {
           User = "coder";
           WorkingDirectory = "/home/coder";
           RuntimeDirectory = "ttyd";
+          # Same forge credential the Coder terminal gets; this is the other
+          # shell people actually type in. See coder-agent above.
+          PassEnvironment = "FORGEJO_TOKEN FORGEJO_USER";
           Restart = "on-failure";
           RestartSec = 2;
 
