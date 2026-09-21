@@ -88,7 +88,10 @@ in {
   ];
 
   nix-homebrew.user = cfg.username;
-  nix-homebrew.taps."theseal/homebrew-ssh-askpass" = inputs.askpass-homebrew-tap;
+  nix-homebrew.taps = {
+    "theseal/homebrew-ssh-askpass" = inputs.askpass-homebrew-tap;
+    "stablyai/homebrew-orca" = inputs.orca-homebrew-tap;
+  };
 
   # Homebrew 4 refuses to load a formula from a third-party tap until the tap is
   # trusted, and `brew bundle` aborts on the first untrusted one -- so a single
@@ -101,8 +104,10 @@ in {
   # invokes bundle itself; activation runs as root and brew refuses that.
   system.activationScripts.preActivation.text = ''
     if [ -x /opt/homebrew/bin/brew ]; then
-      sudo --user=${cfg.username} --set-home /opt/homebrew/bin/brew trust theseal/ssh-askpass \
-        >/dev/null 2>&1 || true
+      for tap in theseal/ssh-askpass stablyai/orca; do
+        sudo --user=${cfg.username} --set-home /opt/homebrew/bin/brew trust "$tap" \
+          >/dev/null 2>&1 || true
+      done
     fi
   '';
 
@@ -138,6 +143,10 @@ in {
       "jellyfin-media-player"
       "openlogi"
       "openmtp"
+      # Orca desktop (onorca.dev): pairs with orca-serve in the Coder
+      # workspace, or runs agents there over SSH worktrees. The cask marks
+      # itself auto_updates, so the app updates in place and brew leaves it.
+      "stablyai/orca/orca"
       "raspberry-pi-imager"
       "rectangle-pro"
       "signal"
