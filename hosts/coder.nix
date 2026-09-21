@@ -49,23 +49,19 @@
   # sibling wants an electron our nixpkgs does not carry.
   orca = (inputs.llm-agents.overlays.shared-nixpkgs pkgs pkgs).llm-agents.orca;
 
-  # Joins the tailnet. Two callers: tailscale-up at boot with the baseline key
-  # off PID 1, and ws-escalate with the trusted key from Vault. TS_AUTHKEY and
-  # TS_HOSTNAME come from the environment; --key-stdin reads the key from
-  # stdin so it never lands in argv.
+  # Joins the tailnet with whichever key the jobspec handed PID 1. Which key
+  # that is decides the node's tags and so its reach: the NixOS template picks
+  # the tag:coder-trusted one for the owners in tf/shared/coder-owners.json
+  # (calculon-tech/platform) and the baseline one for everyone else. The guest
+  # does not know or care which it got.
   #
   # --hostname: networking.hostName is "coder" for every workspace; the
   # jobspec passes ws-<owner>-<workspace>.
   # --accept-dns: tailscaled takes over /etc/resolv.conf and forwards
   # non-tailnet names to the resolver the runtime wrote. Verified on a live
   # workspace; needs the real TUN, userspace mode would black-hole lookups.
-  # --force-reauth: a second run re-registers instead of no-op'ing. Same
-  # machine key, so the tailnet sees the same node with the new key's tags.
   tailscaleJoin = pkgs.writeShellScript "tailscale-join" ''
     set -eu
-    if [ "''${1:-}" = --key-stdin ]; then
-      TS_AUTHKEY="$(cat)"
-    fi
     # No key is not an error: the image must still boot into a usable
     # workspace on a template version that predates TS_AUTHKEY, and on a
     # bare `docker run` of it done by hand for debugging.
@@ -78,56 +74,8 @@
       --hostname="''${TS_HOSTNAME:-coder}" \
       --accept-dns=true \
       --accept-routes=false \
-      --ssh \
-      --force-reauth
+      --ssh
   '';
-
-  # Step up from tag:coder to tag:coder + tag:coder-trusted, or back down.
-  # The trusted key lives in Vault under secret/ananth/, readable only by the
-  # owner's OIDC role, so the wider reach costs a Google login as the owner.
-  # The OIDC callback is localhost:8250 on the browser's machine: from a
-  # laptop, `ssh -L 8250:localhost:8250 <node>` first. `down` re-runs the boot
-  # join with the baseline key; so does a restart.
-  wsEscalate = pkgs.writeShellApplication {
-    name = "ws-escalate";
-    runtimeInputs = [pkgs.jq pkgs.tailscale pkgs.vault-bin];
-    text = ''
-      mode="''${1:-up}"
-      export VAULT_ADDR="''${VAULT_ADDR:-https://vault.cow-justice.ts.net}"
-      self="$(tailscale status --self --json)"
-      tags="$(jq -r '.Self.Tags // [] | join(",")' <<<"$self")"
-
-      case "$mode" in
-        up)
-          if [[ "$tags" == *tag:coder-trusted* ]]; then
-            echo "ws-escalate: already tag:coder-trusted ($tags)" >&2
-            exit 0
-          fi
-          hostname="$(jq -r '.Self.HostName' <<<"$self")"
-          echo "ws-escalate: log in to Vault as the owner. The link's callback is" >&2
-          echo "ws-escalate: localhost:8250 on the browser's machine; from a laptop," >&2
-          echo "ws-escalate: run  ssh -L 8250:localhost:8250 $hostname  first." >&2
-          token="$(vault login -method=oidc -no-store -format=json \
-            role=ananth skip_browser=true | jq -r .auth.client_token)"
-          key="$(VAULT_TOKEN="$token" vault kv get -field=authkey \
-            secret/ananth/coder/tailscale-trusted)"
-          # The token was for one read; do not leave an hour of owner-daily
-          # sitting in a box that runs unattended code.
-          VAULT_TOKEN="$token" vault token revoke -self >/dev/null
-          printf %s "$key" | sudo TS_HOSTNAME="$hostname" ${tailscaleJoin} --key-stdin
-          ;;
-        down)
-          sudo systemctl restart tailscale-up.service
-          ;;
-        *)
-          echo "usage: ws-escalate [up|down]" >&2
-          exit 64
-          ;;
-      esac
-      sleep 2
-      echo "ws-escalate: now $(tailscale status --self --json | jq -r '.Self.Tags // [] | join(",")')" >&2
-    '';
-  };
 in {
   imports = [
     inputs.home-manager.nixosModules.home-manager
@@ -167,7 +115,7 @@ in {
   security.sudo.wheelNeedsPassword = false;
   programs.fish.enable = true;
 
-  environment.systemPackages = [pkgs.coder pkgs.curl pkgs.git pkgs.tailscale orca wsEscalate];
+  environment.systemPackages = [pkgs.coder pkgs.curl pkgs.git pkgs.tailscale orca];
 
   # Reduce image size.
   documentation.enable = false;
@@ -211,9 +159,10 @@ in {
       };
 
       # --- Tailnet membership --------------------------------------------------
-      # The workspace joins cow-justice.ts.net as an ephemeral tag:coder node. The
-      # auth key arrives as TS_AUTHKEY in the container environment (Nomad jobspec
-      # -> PID 1 -> PassEnvironment), the same route CODER_AGENT_TOKEN takes.
+      # The workspace joins cow-justice.ts.net as an ephemeral node, tag:coder
+      # and for some owners tag:coder-trusted as well. The auth key arrives as
+      # TS_AUTHKEY in the container environment (Nomad jobspec -> PID 1 ->
+      # PassEnvironment), the same route CODER_AGENT_TOKEN takes.
       #
       # /var/lib is container rootfs, not the persistent home volume, so tailscaled
       # comes up with no state every boot and logs in fresh each time. That is why
@@ -294,8 +243,7 @@ in {
           Type = "oneshot";
           RemainAfterExit = true;
           PassEnvironment = "TS_AUTHKEY TS_HOSTNAME";
-          # Flags and reasons on tailscaleJoin above. `ws-escalate down`
-          # restarts this unit to drop back to the baseline key.
+          # Flags and reasons on tailscaleJoin above.
           ExecStart = tailscaleJoin;
         };
       };
