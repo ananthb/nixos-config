@@ -41,6 +41,93 @@
       printf "%s" ") format('woff2');}</style>"
     } > $out
   '';
+
+  # Orca (onorca.dev), the agent orchestrator, from numtide's llm-agents.nix:
+  # upstream's .deb, patchelf'd. orca-serve.service below runs it headless.
+  # Through the overlay, applied by hand because nixpkgs.pkgs is pinned here:
+  # the flake's `packages` filters every package by availability, and a
+  # sibling wants an electron our nixpkgs does not carry.
+  orca = (inputs.llm-agents.overlays.shared-nixpkgs pkgs pkgs).llm-agents.orca;
+
+  # Joins the tailnet. Two callers: tailscale-up at boot with the baseline key
+  # off PID 1, and ws-escalate with the trusted key from Vault. TS_AUTHKEY and
+  # TS_HOSTNAME come from the environment; --key-stdin reads the key from
+  # stdin so it never lands in argv.
+  #
+  # --hostname: networking.hostName is "coder" for every workspace; the
+  # jobspec passes ws-<owner>-<workspace>.
+  # --accept-dns: tailscaled takes over /etc/resolv.conf and forwards
+  # non-tailnet names to the resolver the runtime wrote. Verified on a live
+  # workspace; needs the real TUN, userspace mode would black-hole lookups.
+  # --force-reauth: a second run re-registers instead of no-op'ing. Same
+  # machine key, so the tailnet sees the same node with the new key's tags.
+  tailscaleJoin = pkgs.writeShellScript "tailscale-join" ''
+    set -eu
+    if [ "''${1:-}" = --key-stdin ]; then
+      TS_AUTHKEY="$(cat)"
+    fi
+    # No key is not an error: the image must still boot into a usable
+    # workspace on a template version that predates TS_AUTHKEY, and on a
+    # bare `docker run` of it done by hand for debugging.
+    if [ -z "''${TS_AUTHKEY:-}" ]; then
+      echo "tailscale-join: TS_AUTHKEY is empty; staying logged out." >&2
+      exit 0
+    fi
+    exec ${pkgs.tailscale}/bin/tailscale up \
+      --auth-key="$TS_AUTHKEY" \
+      --hostname="''${TS_HOSTNAME:-coder}" \
+      --accept-dns=true \
+      --accept-routes=false \
+      --ssh \
+      --force-reauth
+  '';
+
+  # Step up from tag:coder to tag:coder + tag:coder-trusted, or back down.
+  # The trusted key lives in Vault under secret/ananth/, readable only by the
+  # owner's OIDC role, so the wider reach costs a Google login as the owner.
+  # The OIDC callback is localhost:8250 on the browser's machine: from a
+  # laptop, `ssh -L 8250:localhost:8250 <node>` first. `down` re-runs the boot
+  # join with the baseline key; so does a restart.
+  wsEscalate = pkgs.writeShellApplication {
+    name = "ws-escalate";
+    runtimeInputs = [pkgs.jq pkgs.tailscale pkgs.vault-bin];
+    text = ''
+      mode="''${1:-up}"
+      export VAULT_ADDR="''${VAULT_ADDR:-https://vault.cow-justice.ts.net}"
+      self="$(tailscale status --self --json)"
+      tags="$(jq -r '.Self.Tags // [] | join(",")' <<<"$self")"
+
+      case "$mode" in
+        up)
+          if [[ "$tags" == *tag:coder-trusted* ]]; then
+            echo "ws-escalate: already tag:coder-trusted ($tags)" >&2
+            exit 0
+          fi
+          hostname="$(jq -r '.Self.HostName' <<<"$self")"
+          echo "ws-escalate: log in to Vault as the owner. The link's callback is" >&2
+          echo "ws-escalate: localhost:8250 on the browser's machine; from a laptop," >&2
+          echo "ws-escalate: run  ssh -L 8250:localhost:8250 $hostname  first." >&2
+          token="$(vault login -method=oidc -no-store -format=json \
+            role=ananth skip_browser=true | jq -r .auth.client_token)"
+          key="$(VAULT_TOKEN="$token" vault kv get -field=authkey \
+            secret/ananth/coder/tailscale-trusted)"
+          # The token was for one read; do not leave an hour of owner-daily
+          # sitting in a box that runs unattended code.
+          VAULT_TOKEN="$token" vault token revoke -self >/dev/null
+          printf %s "$key" | sudo TS_HOSTNAME="$hostname" ${tailscaleJoin} --key-stdin
+          ;;
+        down)
+          sudo systemctl restart tailscale-up.service
+          ;;
+        *)
+          echo "usage: ws-escalate [up|down]" >&2
+          exit 64
+          ;;
+      esac
+      sleep 2
+      echo "ws-escalate: now $(tailscale status --self --json | jq -r '.Self.Tags // [] | join(",")')" >&2
+    '';
+  };
 in {
   imports = [
     inputs.home-manager.nixosModules.home-manager
@@ -80,7 +167,7 @@ in {
   security.sudo.wheelNeedsPassword = false;
   programs.fish.enable = true;
 
-  environment.systemPackages = with pkgs; [coder curl git tailscale];
+  environment.systemPackages = [pkgs.coder pkgs.curl pkgs.git pkgs.tailscale orca wsEscalate];
 
   # Reduce image size.
   documentation.enable = false;
@@ -207,47 +294,48 @@ in {
           Type = "oneshot";
           RemainAfterExit = true;
           PassEnvironment = "TS_AUTHKEY TS_HOSTNAME";
-          ExecStart = pkgs.writeShellScript "tailscale-up" ''
-            set -eu
-            # No key is not an error: the image must still boot into a usable
-            # workspace on a template version that predates TS_AUTHKEY, and on a
-            # bare `docker run` of it done by hand for debugging.
-            if [ -z "''${TS_AUTHKEY:-}" ]; then
-              echo "tailscale-up: TS_AUTHKEY is empty; staying logged out." >&2
-              exit 0
-            fi
+          # Flags and reasons on tailscaleJoin above. `ws-escalate down`
+          # restarts this unit to drop back to the baseline key.
+          ExecStart = tailscaleJoin;
+        };
+      };
 
-            # --hostname because networking.hostName is the constant "coder" for
-            # every workspace built from this image; without it the tailnet fills
-            # up with coder-1, coder-2, ... and no entry says whose box it is. The
-            # jobspec passes ws-<owner>-<workspace>.
-            #
-            # --accept-dns=true: tailscale's DNS manager takes over
-            # /etc/resolv.conf, pointing it at 100.100.100.100 and forwarding
-            # everything that is not a tailnet name to whatever resolver was
-            # there before. In this guest that file is written by the runtime
-            # and is the one thing the whole workspace depends on -- the agent
-            # dials coder.calculon.tech by name, and a guest that cannot resolve
-            # presents as a workspace that never starts -- so this was not
-            # changed on faith. The handover was run on a live workspace first,
-            # behind a systemd-run timer armed to put the old file back if the
-            # shell was lost, and coder.calculon.tech, github.com,
-            # cache.nixos.org and the MagicDNS names all still resolved after
-            # the flip. It needs the real TUN from net_admin: in userspace mode
-            # there is no route to 100.100.100.100 and this would black-hole
-            # every lookup.
-            #
-            # This also picks up the tailnet's split-DNS route for `consul`,
-            # which points at pwu-compute1:53. That does NOT resolve today and
-            # is not meant to yet -- the tag:coder -> tag:server grant is scoped
-            # to 22, so the query is dropped rather than answered. Widening that
-            # grant to 53 is the separate decision that would turn it on.
-            exec tailscale up \
-              --auth-key="$TS_AUTHKEY" \
-              --hostname="''${TS_HOSTNAME:-coder}" \
-              --accept-dns=true \
-              --accept-routes=false \
-              --ssh
+      # Orca's headless runtime, which the desktop and mobile apps pair with.
+      # No bind flag, so it listens everywhere; the tailnet policy (owner's
+      # devices -> tag:coder) is the gate, pairing is a one-time code and the
+      # session is end-to-end encrypted. Advertises this node's MagicDNS name
+      # so the pairing link dials somewhere reachable. Xvfb must be on PATH:
+      # Orca starts its own on :99. Runs as coder so the profile under
+      # ~/.config persists. KillMode, RestartPreventExitStatus=3 (another Orca
+      # owns the profile) and the start limit are upstream's headless unit.
+      # Pairing link:
+      #   journalctl -u orca-serve -o cat | jq -r 'fromjson? | select(.type == "orca_server_ready") | .pairing.url'
+      orca-serve = {
+        description = "Orca runtime server";
+        wantedBy = ["multi-user.target"];
+        after = ["network-online.target" "tailscale-up.service"];
+        wants = ["network-online.target" "tailscale-up.service"];
+        path = [orca pkgs.xorg-server pkgs.tailscale pkgs.jq];
+        environment.LIBGL_ALWAYS_SOFTWARE = "1";
+        unitConfig = {
+          StartLimitIntervalSec = 300;
+          StartLimitBurst = 5;
+        };
+        serviceConfig = {
+          User = "coder";
+          WorkingDirectory = "/home/coder";
+          KillMode = "mixed";
+          Restart = "on-failure";
+          RestartPreventExitStatus = 3;
+          RestartSec = 5;
+          ExecStart = pkgs.writeShellScript "orca-serve-start" ''
+            set -eu
+            addr="$(tailscale status --self --json 2>/dev/null | jq -r '.Self.DNSName // "" | rtrimstr(".")')"
+            set -- --port 6768 --json
+            if [ -n "$addr" ]; then
+              set -- "$@" --pairing-address "$addr"
+            fi
+            exec orca-ide serve "$@"
           '';
         };
       };
