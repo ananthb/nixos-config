@@ -13,6 +13,7 @@
   ...
 }: {
   imports = [
+    ./claude.nix
     ./helix.nix
   ];
 
@@ -45,6 +46,24 @@
     mosh
     nix-output-monitor
     ripgrep
+  ];
+
+  # Settings for the claude-code above, so every host that gets the CLI gets
+  # the same baseline. Anything host-specific belongs in the consuming
+  # profile instead -- home/discovery.nix appends the auto-mode classifier
+  # context for that machine. See modules/home/claude.nix for why this is
+  # merged into ~/.claude/settings.json rather than written as a home.file.
+  claude.settings = [
+    {
+      includeCoAuthoredBy = false;
+      skipAutoPermissionPrompt = true;
+      skipWorkflowUsageWarning = true;
+      permissions.defaultMode = "auto";
+      enabledPlugins = {
+        "gopls-lsp@claude-plugins-official" = true;
+        "frontend-design@claude-plugins-official" = true;
+      };
+    }
   ];
 
   programs = {
