@@ -20,6 +20,31 @@
 }: let
   cfg = config.machines;
   homeDir = "/Users/" + cfg.username;
+
+  # The keys nix insists on in ~/.claude/settings.json. Anything NOT listed
+  # here is Claude's to write and is preserved across rebuilds; anything that
+  # is listed is restored on every switch, so change these here rather than in
+  # /config. autoMode.environment is context handed to the auto-mode
+  # classifier -- "$defaults" keeps the built-in entries and appends ours.
+  claudeSettings = {
+    includeCoAuthoredBy = false;
+    skipAutoPermissionPrompt = true;
+    skipWorkflowUsageWarning = true;
+    permissions.defaultMode = "auto";
+    enabledPlugins = {
+      "gopls-lsp@claude-plugins-official" = true;
+      "frontend-design@claude-plugins-official" = true;
+    };
+    autoMode.environment = [
+      "$defaults"
+      "This is the user's personal Mac (hostname: discovery). ~/src/nixos-config is the nix-darwin + home-manager config for all of their hosts; applying it means `sudo darwin-rebuild switch --flake .#discovery`, which is routine here and is expected to require sudo."
+      "Homebrew packages on this machine are declared in that repo, with homebrew.onActivation.cleanup = \"zap\". A manual `brew install` does not survive the next rebuild, and removing a cask from the nix lists uninstalls the app and deletes its ~/Library data."
+      "Git commits here are signed with a YubiKey and block on a physical touch with no on-screen prompt, so a commit can look like it has hung when it is only waiting."
+    ];
+  };
+
+  claudeSettingsFile =
+    pkgs.writeText "claude-settings.json" (builtins.toJSON claudeSettings);
 in {
   imports = [
     inputs.cosmonaut.homeManagerModules.default
@@ -106,13 +131,42 @@ in {
       '';
     };
 
-    # ~/.claude/settings.json is deliberately NOT managed here. home.file
-    # writes it as a symlink into the store, which is read-only, so Claude
-    # Code silently cannot persist anything it owns -- "always allow" on a
-    # permission prompt, /config toggles, the auto-mode opt-in. Those writes
-    # are the point of the file, so Claude keeps it and nix stays out. The
-    # cost is that it no longer arrives on a fresh host; claude-code itself
-    # still does, via modules/home/dev.nix.
+    # ~/.claude/settings.json cannot be a home.file. That writes a symlink
+    # into the store, which is read-only, and Claude Code writes this file
+    # itself -- "always allow" on a permission prompt, /config toggles, the
+    # auto-mode opt-in all land here and would silently fail. So rather than
+    # owning the file, merge the declared keys into whatever is already there
+    # and leave the rest untouched: jq's `*` is a recursive merge with the
+    # right side winning, so claudeSettings overrides key by key instead of
+    # replacing the document. Arrays are replaced whole, which is what
+    # autoMode.environment wants.
+    #
+    # Bad JSON in the existing file is left alone rather than overwritten --
+    # it is more likely a half-written edit worth keeping than garbage.
+    # The `run` wrapper cannot be used below: it becomes `echo` under
+    # --dry-run, and a redirect attached to it would still truncate the
+    # target and fill it with the echoed command. Guard the whole block on
+    # DRY_RUN instead, the way home-manager's own modules do.
+    activation.claudeSettings = lib.hm.dag.entryAfter ["writeBoundary"] ''
+      settings="${homeDir}/.claude/settings.json"
+
+      if [[ -v DRY_RUN ]]; then
+        echo "would merge ${claudeSettingsFile} into $settings"
+      else
+        mkdir -p "$(dirname "$settings")"
+
+        if [ ! -s "$settings" ]; then
+          install -m 644 ${claudeSettingsFile} "$settings"
+        elif ${pkgs.jq}/bin/jq -e . "$settings" >/dev/null 2>&1; then
+          ${pkgs.jq}/bin/jq -s '.[0] * .[1]' "$settings" ${claudeSettingsFile} \
+            >"$settings.hm-merged" \
+            && mv -f "$settings.hm-merged" "$settings"
+          chmod 644 "$settings"
+        else
+          warnEcho "$settings is not valid JSON; leaving it alone."
+        fi
+      fi
+    '';
   };
 
   programs = {
