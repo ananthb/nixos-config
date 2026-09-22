@@ -79,7 +79,6 @@ in {
     packages = with pkgs;
       [
         aria2 # one-off torrent/magnet downloads: aria2c "magnet:?..."
-        codex
         flyctl
         hcloud
         sops
@@ -107,16 +106,13 @@ in {
       '';
     };
 
-    file.".claude/settings.json".text = builtins.toJSON {
-      includeCoAuthoredBy = false;
-      permissions.defaultMode = "auto";
-      enabledPlugins = {
-        "gopls-lsp@claude-plugins-official" = true;
-        "frontend-design@claude-plugins-official" = true;
-      };
-      skipAutoPermissionPrompt = true;
-      skipWorkflowUsageWarning = true;
-    };
+    # ~/.claude/settings.json is deliberately NOT managed here. home.file
+    # writes it as a symlink into the store, which is read-only, so Claude
+    # Code silently cannot persist anything it owns -- "always allow" on a
+    # permission prompt, /config toggles, the auto-mode opt-in. Those writes
+    # are the point of the file, so Claude keeps it and nix stays out. The
+    # cost is that it no longer arrives on a fresh host; claude-code itself
+    # still does, via modules/home/dev.nix.
   };
 
   programs = {

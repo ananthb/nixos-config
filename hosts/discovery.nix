@@ -119,22 +119,17 @@ in {
     ];
     casks = [
       "1password"
-      # "claude" is the desktop app. claude-code is NOT here on purpose: it
-      # comes from nixpkgs via modules/home/dev.nix, so darwin, the Coder
-      # workspace and the chromebook all run the same build. Neither Linux
-      # profile has Homebrew, so a cask here could only ever mean this Mac
-      # drifting to a different version than the workspace. The trade is that
-      # updates arrive with `nix flake update` rather than the app updating
-      # itself -- a store install cannot self-update.
-      "claude"
-      "codex"
-      "codex-app"
       "discord"
       "drata-agent"
       # GUI apps stay casks. macOS wants a real .app bundle in /Applications
       # -- Launchpad, Spotlight, the dock and `open -a` all key off it, and a
       # nixpkgs build lands in the store instead. That is the split: GUI here,
-      # CLI from nixpkgs via modules/home/dev.nix (see claude-code above).
+      # CLI from nixpkgs via modules/home/dev.nix. claude-code is the case
+      # that pins the rule down: it stays in nixpkgs so darwin, the Coder
+      # workspace and the chromebook all run the same build. Neither Linux
+      # profile has Homebrew, so a cask could only ever mean this Mac drifting
+      # to a different version than the workspace. The trade is that updates
+      # arrive with `nix flake update` -- a store install cannot self-update.
       # Ghostty is also the terminal, so it is what has to carry the Hack Nerd
       # Font -- set `font-family = "Hack Nerd Font Mono"` in its config.
       "ghostty"
