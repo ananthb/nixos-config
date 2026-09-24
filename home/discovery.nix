@@ -22,7 +22,6 @@
   homeDir = "/Users/" + cfg.username;
 in {
   imports = [
-    inputs.cosmonaut.homeManagerModules.default
     inputs.scurry.homeManagerModules.default
     inputs.starla.homeManagerModules.default
   ];
@@ -123,17 +122,6 @@ in {
   ];
 
   programs = {
-    cosmonaut = {
-      enable = true;
-      # Coder workspaces only — the github provider would otherwise nag
-      # about codespace auth just because gh is installed for git.
-      workspaceProvider = "coder";
-      providers.github.enable = false;
-      # Remote shells attach to a persistent zellij session that
-      # survives SSH drops.
-      ssh.multiplexer = "zellij";
-    };
-
     nh = {
       enable = true;
       clean = {
@@ -177,8 +165,7 @@ in {
         };
         # Exclude codespace hosts (cs.* and cs-*) so the YubiKey
         # IdentityFile doesn't block `gh codespace ssh` when the
-        # device isn't plugged in. cosmonaut's doctor flags a bare
-        # `Host *` here for exactly this reason. flatcar-gateway is
+        # device isn't plugged in. flatcar-gateway is
         # excluded for a different reason: ssh accumulates IdentityFile
         # across every matching block, so leaving it in here would put
         # the YubiKey ahead of id_ed25519 and prompt anyway.

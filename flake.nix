@@ -18,11 +18,6 @@
       flake = false;
     };
 
-    cosmonaut = {
-      url = "github:ananthb/cosmonaut";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     # Determinate Nix manages the daemon on discovery, replacing nix-darwin's
     # native Nix management (see hosts/discovery.nix).
     determinate.url = "https://flakehub.com/f/DeterminateSystems/determinate/3";

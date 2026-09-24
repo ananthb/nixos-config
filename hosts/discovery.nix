@@ -52,8 +52,8 @@ in {
   documentation.enable = false;
   system.tools.darwin-uninstaller.enable = false;
 
-  # Exclude codespace hosts (cs.* and cs-*) so cosmonaut's check
-  # against bare `Host *` rules in ~/.ssh/config stays green.
+  # Exclude codespace hosts (cs.* and cs-*) so this doesn't apply to
+  # `gh codespace ssh` connections.
   programs.ssh.extraConfig = ''
     Host * !cs-* !cs.*
       AddKeysToAgent yes
