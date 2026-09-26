@@ -107,21 +107,35 @@
   # does not know or care which it got.
   #
   # --hostname: networking.hostName is "coder" for every workspace; the
-  # jobspec passes ws-<owner>-<workspace>.
+  # jobspec passes the workspace's own name, so the MagicDNS name a client
+  # dials is the name in the Coder UI and nothing has to be looked up.
   # --accept-dns: tailscaled takes over /etc/resolv.conf and forwards
   # non-tailnet names to the resolver the runtime wrote. Verified on a live
   # workspace; needs the real TUN, userspace mode would black-hole lookups.
+  #
+  # --force-reauth, on every boot, because tailscaled's state is persistent
+  # now (see tailscaled below) and a node that is already logged in ignores
+  # the key entirely. The key is what carries the tags, so without this a
+  # workspace would keep the tier it first registered with for as long as its
+  # home volume lives: adding someone to tf/shared/coder-owners.json would not
+  # grant tag:coder-trusted, and -- the half that matters -- REMOVING them
+  # would not take it away. Re-auth is not re-registration; it updates the
+  # device in place, rotating its node key and keeping its Tailscale IP, so
+  # the stable identity this whole change is for survives it.
   tailscaleJoin = pkgs.writeShellScript "tailscale-join" ''
     set -eu
     # No key is not an error: the image must still boot into a usable
     # workspace on a template version that predates TS_AUTHKEY, and on a
-    # bare `docker run` of it done by hand for debugging.
+    # bare `docker run` of it done by hand for debugging. With state now
+    # persistent, a node that logged in on an earlier boot also just stays
+    # up rather than dropping off the tailnet.
     if [ -z "''${TS_AUTHKEY:-}" ]; then
       echo "tailscale-join: TS_AUTHKEY is empty; staying logged out." >&2
       exit 0
     fi
     exec ${pkgs.tailscale}/bin/tailscale up \
       --auth-key="$TS_AUTHKEY" \
+      --force-reauth \
       --hostname="''${TS_HOSTNAME:-coder}" \
       --accept-dns=true \
       --accept-routes=false \
@@ -184,9 +198,18 @@ in {
     # node returns EBADFD ("file descriptor in bad state"), not ENODEV, which is
     # how you tell those two apart. mknod needs CAP_MKNOD, which is already in
     # the container's bounding set.
+    #
+    # /home/coder/.tailscale is the other half: tailscaled's state, on the one
+    # filesystem in this guest that outlives the container (see tailscaled
+    # below). Root-owned 0700 inside the user's home because that home volume
+    # is the ONLY persistent mount -- findmnt shows /, /nix/store, /alloc,
+    # /local and /secrets all coming from the image or the alloc. Created here
+    # rather than by StateDirectory= so it exists before tailscaled starts and
+    # with permissions tailscaled will accept.
     tmpfiles.rules = [
       "d /dev/net 0755 root root -"
       "c! /dev/net/tun 0600 root root - 10:200"
+      "d /home/coder/.tailscale 0700 root root -"
     ];
 
     # Fetch the version-matched agent from the Coder server at boot (mirrors what
@@ -222,15 +245,32 @@ in {
       };
 
       # --- Tailnet membership --------------------------------------------------
-      # The workspace joins cow-justice.ts.net as an ephemeral node, tag:coder
+      # The workspace joins cow-justice.ts.net as one lasting node, tag:coder
       # and for some owners tag:coder-trusted as well. The auth key arrives as
       # TS_AUTHKEY in the container environment (Nomad jobspec -> PID 1 ->
       # PassEnvironment), the same route CODER_AGENT_TOKEN takes.
       #
-      # /var/lib is container rootfs, not the persistent home volume, so tailscaled
-      # comes up with no state every boot and logs in fresh each time. That is why
-      # the key is ephemeral: a registration that outlived the guest would leave a
-      # dead tailnet node behind on every single workspace start.
+      # The state file is on the home volume, not in /var/lib, so the workspace
+      # comes back as the SAME tailnet device across restarts -- same node, same
+      # 100.x address, same MagicDNS name. It used to live in the container
+      # rootfs and be thrown away on every boot, which is why the key was
+      # ephemeral: a registration that outlived the guest would otherwise have
+      # left a dead node behind on each start.
+      #
+      # Throwing it away cost the thing the name is for. MagicDNS names are
+      # unique, so a second device asking for a name another device already
+      # holds is given that name with -1 appended. Control reaps an ephemeral
+      # node minutes after it goes offline, and a workspace restart is seconds,
+      # so the new guest kept registering against its own not-yet-reaped
+      # corpse and landing on <workspace>-1 -- which is exactly the address a
+      # paired Orca client had stored and now could not reach. One durable node
+      # cannot collide with itself.
+      #
+      # The trade is that deleting a workspace now leaves its node in the
+      # tailnet until someone removes it in the admin console. Deletions are
+      # rare and a stale tagged node grants nothing on its own; a name silently
+      # drifting under a client that had it right was the daily cost.
+      # tailscale.tf in calculon-tech/platform mints the matching key.
       #
       # services.tailscale is deliberately NOT used. That module takes tailscaled's
       # unit from the package (systemd.packages) and bakes the TUN mode into a
@@ -248,7 +288,9 @@ in {
         path = [pkgs.iproute2 pkgs.getent (dirOf config.security.wrapperDir)];
         serviceConfig = {
           Type = "notify";
-          StateDirectory = "tailscale";
+          # No StateDirectory=: that is /var/lib/tailscale, which is container
+          # rootfs and resets. The state path below is on the home volume, and
+          # tmpfiles above makes the directory.
           RuntimeDirectory = "tailscale";
           RuntimeDirectoryMode = "0755";
           Restart = "on-failure";
@@ -286,7 +328,7 @@ in {
             # tailscale-up below); they stay so that a workspace which lands on
             # a node without net_admin still has a way out rather than none.
             exec ${pkgs.tailscale}/bin/tailscaled \
-              --state=/var/lib/tailscale/tailscaled.state \
+              --state=/home/coder/.tailscale/tailscaled.state \
               --socket=/run/tailscale/tailscaled.sock \
               --port=41641 \
               --tun="$tun" \
