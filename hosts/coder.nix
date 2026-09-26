@@ -138,7 +138,7 @@
       --force-reauth \
       --hostname="''${TS_HOSTNAME:-coder}" \
       --accept-dns=true \
-      --accept-routes=false \
+      --accept-routes=true \
       --ssh
   '';
 in {
