@@ -57,6 +57,51 @@
   # The forge fj talks to outside a checkout; -H or a repo remote still wins.
   home.sessionVariables.FJ_FALLBACK_HOST = "https://calculon.tech";
 
+  # Teach git the forge's credentials, so `fj auth login` is the only login.
+  # The tunnel in front of calculon.tech carries HTTP only -- git+ssh is on
+  # pwu-compute1:2222 over the tailnet -- so git speaks HTTPS here and needs a
+  # token as the password. fj already holds one; handing it over beats keeping
+  # a second long-lived PAT in the keychain.
+  #
+  # `fj whoami` runs first on purpose. The OAuth token is short-lived, hours
+  # rather than months, and fj is what renews it from the stored refresh_token.
+  # Read keys.json cold and git gets an expired token about as often as a live
+  # one.
+  #
+  # The leading "" is not a typo. It clears the inherited global helpers
+  # (osxkeychain, gh) for this host alone, so a stale keychain entry cannot
+  # answer first and fail the push.
+  programs.git.settings.credential."https://calculon.tech".helper = [
+    ""
+    "${pkgs.writeShellApplication {
+      name = "git-credential-fj";
+      runtimeInputs = [pkgs.forgejo-cli pkgs.jq];
+      text = ''
+        [ "''${1-}" = get ] || exit 0
+
+        host=
+        while IFS= read -r line; do
+          [ -n "$line" ] || break
+          case $line in
+            host=*) host=''${line#host=} ;;
+          esac
+        done
+        [ "$host" = calculon.tech ] || exit 0
+
+        fj -H calculon.tech whoami >/dev/null 2>&1 || exit 0
+
+        keys="$HOME/Library/Application Support/forgejo-cli.forgejo-cli/keys.json"
+        [ -f "$keys" ] || keys="''${XDG_DATA_HOME:-$HOME/.local/share}/forgejo-cli/keys.json"
+        [ -f "$keys" ] || exit 0
+
+        token=$(jq -r '.hosts."calculon.tech".token // empty' "$keys" 2>/dev/null) || exit 0
+        [ -n "$token" ] || exit 0
+
+        printf 'username=oauth2\npassword=%s\n' "$token"
+      '';
+    }}/bin/git-credential-fj"
+  ];
+
   # Settings for the claude-code above, so every host that gets the CLI gets
   # the same baseline. Anything host-specific belongs in the consuming
   # profile instead -- home/discovery.nix appends the auto-mode classifier
