@@ -48,6 +48,15 @@
     ripgrep
   ];
 
+  # `fj auth login` for the forge. fj only knows OAuth client ids for a few
+  # public forges; this is the forge's public PKCE app (calculon-tech/platform,
+  # tf/forgejo/cli.tf), not a secret. fj reads ~/.config on macOS too.
+  xdg.configFile."forgejo-cli/client_ids".text = ''
+    calculon.tech cb2cd3ff-e45f-4b2c-9ad5-a9cee907033b
+  '';
+  # The forge fj talks to outside a checkout; -H or a repo remote still wins.
+  home.sessionVariables.FJ_FALLBACK_HOST = "https://calculon.tech";
+
   # Settings for the claude-code above, so every host that gets the CLI gets
   # the same baseline. Anything host-specific belongs in the consuming
   # profile instead -- home/discovery.nix appends the auto-mode classifier
