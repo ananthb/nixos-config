@@ -55,7 +55,8 @@ in {
   # nothing else; github.com still goes through `gh auth git-credential`.
   # User-level, which is the point: the per-checkout `git config --local
   # credential.helper` dance was the friction this removes.
-  programs.git.settings.credential."https://calculon.tech".helper = "${forgejoCredential}";
+  # After dev.nix's ["" fj], which stays quiet here with no `fj` login.
+  programs.git.settings.credential."https://calculon.tech".helper = lib.mkAfter ["${forgejoCredential}"];
 
   dev.helix.disable = ["c" "ltex" "ansible"];
 }
