@@ -110,10 +110,8 @@ in {
   # invokes bundle itself; activation runs as root and brew refuses that.
   system.activationScripts.preActivation.text = ''
     if [ -x /opt/homebrew/bin/brew ]; then
-      for tap in theseal/ssh-askpass; do
-        sudo --user=${cfg.username} --set-home /opt/homebrew/bin/brew trust "$tap" \
-          >/dev/null 2>&1 || true
-      done
+      sudo --user=${cfg.username} --set-home /opt/homebrew/bin/brew trust theseal/ssh-askpass \
+        >/dev/null 2>&1 || true
     fi
   '';
 
