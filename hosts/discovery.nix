@@ -87,6 +87,13 @@ in {
     inputs.nix-index-database.homeModules.nix-index
   ];
 
+  # HostName survives Bonjour conflict renames (discovery-5), so Tailscale keeps the name.
+  networking = {
+    hostName = "discovery";
+    localHostName = "discovery";
+    computerName = "discovery";
+  };
+
   nix-homebrew.user = cfg.username;
   nix-homebrew.taps = {
     "theseal/homebrew-ssh-askpass" = inputs.askpass-homebrew-tap;
