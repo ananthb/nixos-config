@@ -75,9 +75,9 @@
       echo "tailscale-join: TS_AUTHKEY is empty; staying logged out." >&2
       exit 0
     fi
+    # No --force-reauth: it registers a new node each boot, which lands on <name>-1.
     exec ${pkgs.tailscale}/bin/tailscale up \
       --auth-key="$TS_AUTHKEY" \
-      --force-reauth \
       --hostname="''${TS_HOSTNAME:-coder}" \
       --accept-dns=true \
       --accept-routes=true \
