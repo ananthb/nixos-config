@@ -42,64 +42,6 @@
     } > $out
   '';
 
-  # Orca (onorca.dev), the agent orchestrator, from numtide's llm-agents.nix:
-  # upstream's .deb, patchelf'd. orca-serve.service below runs it headless.
-  # Through the overlay, applied by hand because nixpkgs.pkgs is pinned here:
-  # the flake's `packages` filters every package by availability, and a
-  # sibling wants an electron our nixpkgs does not carry.
-  orca = (inputs.llm-agents.overlays.shared-nixpkgs pkgs pkgs).llm-agents.orca;
-
-  # Prints the pairing link a client needs to reach orca-serve here. The
-  # runtime emits it once, as one JSON line at startup, and keeps no copy:
-  # `orca status` reports readiness but carries no pairing field, so the
-  # journal is the only record and this is the supported way to read it.
-  #
-  # It exists because the pipeline anyone writes by hand is a trap twice
-  # over, and both halves fail in a way that reads as "no pairing link" and
-  # not as "your command is wrong". The unit interleaves plain-text Electron
-  # and dbus lines with its JSON, so jq needs -R or it parses the first of
-  # those as an input document and exits before fromjson? is ever reached;
-  # and coder could not read the journal at all until the systemd-journal
-  # group below.
-  #
-  # Last line wins: a restart emits a fresh one and the old link is stale.
-  orca-pairing = pkgs.writeShellScriptBin "orca-pairing" ''
-    set -euo pipefail
-
-    if [ "$#" -eq 0 ]; then arg=""; else arg="$1"; fi
-    case "$arg" in
-      "") field=.pairing.url ;;
-      --web) field=.pairing.webClientUrl ;;
-      --json) field=. ;;
-      -h | --help)
-        echo "usage: orca-pairing [--web | --json]"
-        echo "  (default)  orca://pair link for a desktop or mobile client"
-        echo "  --web      browser URL for the web client, code in the fragment"
-        echo "  --json     the whole orca_server_ready line"
-        exit 0
-        ;;
-      *)
-        echo "orca-pairing: unknown argument: $arg" >&2
-        exit 2
-        ;;
-    esac
-
-    ready="$(${config.systemd.package}/bin/journalctl -u orca-serve -o cat --no-pager |
-      ${pkgs.jq}/bin/jq -Rc 'fromjson? | select(.type == "orca_server_ready")' |
-      ${pkgs.coreutils}/bin/tail -n 1)"
-
-    if [ -z "$ready" ]; then
-      echo "orca-pairing: no pairing line in the journal; orca-serve is $(${config.systemd.package}/bin/systemctl is-active orca-serve)" >&2
-      exit 1
-    fi
-
-    if [ "$field" = "." ]; then
-      printf '%s\n' "$ready" | ${pkgs.jq}/bin/jq .
-    else
-      printf '%s\n' "$ready" | ${pkgs.jq}/bin/jq -r "$field"
-    fi
-  '';
-
   # Joins the tailnet with whichever key the jobspec handed PID 1. Which key
   # that is decides the node's tags and so its reach: the NixOS template picks
   # the tag:coder-trusted one for the owners in tf/shared/coder-owners.json
@@ -186,7 +128,7 @@ in {
   security.sudo.wheelNeedsPassword = false;
   programs.fish.enable = true;
 
-  environment.systemPackages = [pkgs.coder pkgs.curl pkgs.git pkgs.tailscale orca orca-pairing];
+  environment.systemPackages = [pkgs.coder pkgs.curl pkgs.git pkgs.tailscale];
 
   # Reduce image size.
   documentation.enable = false;
@@ -263,7 +205,7 @@ in {
       # node minutes after it goes offline, and a workspace restart is seconds,
       # so the new guest kept registering against its own not-yet-reaped
       # corpse and landing on <workspace>-1 -- which is exactly the address a
-      # paired Orca client had stored and now could not reach. One durable node
+      # client that had the name right could no longer reach. One durable node
       # cannot collide with itself.
       #
       # The trade is that deleting a workspace now leaves its node in the
@@ -353,43 +295,35 @@ in {
         };
       };
 
-      # Orca's headless runtime, which the desktop and mobile apps pair with.
-      # No bind flag, so it listens everywhere; the tailnet policy (owner's
-      # devices -> tag:coder) is the gate, pairing is a one-time code and the
-      # session is end-to-end encrypted. Advertises this node's MagicDNS name
-      # so the pairing link dials somewhere reachable. Xvfb must be on PATH:
-      # Orca starts its own on :99. Runs as coder so the profile under
-      # ~/.config persists. KillMode, RestartPreventExitStatus=3 (another Orca
-      # owns the profile) and the start limit are upstream's headless unit.
-      # Pairing link: run `orca-pairing`, defined in the let block above,
-      # which is also where the shape of this unit's ready line is written up.
-      orca-serve = {
-        description = "Orca runtime server";
+      # opencode's server and web UI, on loopback. opencode-tailnet puts it on
+      # this node's MagicDNS name over HTTPS, for a browser or phone and for
+      # `opencode attach https://<workspace>.cow-justice.ts.net`. Through a
+      # login shell so it gets the home-manager PATH and opencode config.
+      opencode-web = {
+        description = "opencode web";
         wantedBy = ["multi-user.target"];
-        after = ["network-online.target" "tailscale-up.service"];
-        wants = ["network-online.target" "tailscale-up.service"];
-        path = [orca pkgs.xorg-server pkgs.tailscale pkgs.jq];
-        environment.LIBGL_ALWAYS_SOFTWARE = "1";
-        unitConfig = {
-          StartLimitIntervalSec = 300;
-          StartLimitBurst = 5;
-        };
+        after = ["network-online.target"];
+        wants = ["network-online.target"];
         serviceConfig = {
           User = "coder";
           WorkingDirectory = "/home/coder";
-          KillMode = "mixed";
           Restart = "on-failure";
-          RestartPreventExitStatus = 3;
           RestartSec = 5;
-          ExecStart = pkgs.writeShellScript "orca-serve-start" ''
-            set -eu
-            addr="$(tailscale status --self --json 2>/dev/null | jq -r '.Self.DNSName // "" | rtrimstr(".")')"
-            set -- --port 6768 --json
-            if [ -n "$addr" ]; then
-              set -- "$@" --pairing-address "$addr"
-            fi
-            exec orca-ide serve "$@"
-          '';
+          ExecStart = "${pkgs.fish}/bin/fish -l -c 'exec opencode web --hostname 127.0.0.1 --port 4096'";
+        };
+      };
+
+      # The tailnet policy (owner's devices -> tag:coder) is the gate.
+      opencode-tailnet = {
+        description = "Serve opencode on the tailnet";
+        wantedBy = ["multi-user.target"];
+        after = ["tailscale-up.service" "opencode-web.service"];
+        wants = ["tailscale-up.service" "opencode-web.service"];
+        path = [pkgs.tailscale];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          ExecStart = "${pkgs.tailscale}/bin/tailscale serve --bg --https=443 http://127.0.0.1:4096";
         };
       };
 

@@ -90,7 +90,6 @@ in {
   nix-homebrew.user = cfg.username;
   nix-homebrew.taps = {
     "theseal/homebrew-ssh-askpass" = inputs.askpass-homebrew-tap;
-    "stablyai/homebrew-orca" = inputs.orca-homebrew-tap;
   };
 
   # Homebrew 4 refuses to load a formula from a third-party tap until the tap is
@@ -104,7 +103,7 @@ in {
   # invokes bundle itself; activation runs as root and brew refuses that.
   system.activationScripts.preActivation.text = ''
     if [ -x /opt/homebrew/bin/brew ]; then
-      for tap in theseal/ssh-askpass stablyai/orca; do
+      for tap in theseal/ssh-askpass; do
         sudo --user=${cfg.username} --set-home /opt/homebrew/bin/brew trust "$tap" \
           >/dev/null 2>&1 || true
       done
@@ -124,7 +123,7 @@ in {
       # GUI apps stay casks. macOS wants a real .app bundle in /Applications
       # -- Launchpad, Spotlight, the dock and `open -a` all key off it, and a
       # nixpkgs build lands in the store instead. That is the split: GUI here,
-      # CLI from nixpkgs via modules/home/dev.nix. claude-code is the case
+      # CLI from nixpkgs via modules/home/dev.nix. opencode is the case
       # that pins the rule down: it stays in nixpkgs so darwin, the Coder
       # workspace and the chromebook all run the same build. Neither Linux
       # profile has Homebrew, so a cask could only ever mean this Mac drifting
@@ -138,10 +137,6 @@ in {
       "jellyfin-media-player"
       "openlogi"
       "openmtp"
-      # Orca desktop (onorca.dev): pairs with orca-serve in the Coder
-      # workspace, or runs agents there over SSH worktrees. The cask marks
-      # itself auto_updates, so the app updates in place and brew leaves it.
-      "stablyai/orca/orca"
       "raspberry-pi-imager"
       "rectangle-pro"
       "signal"

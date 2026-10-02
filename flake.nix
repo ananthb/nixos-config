@@ -47,14 +47,6 @@
       flake = false;
     };
 
-    # Packages for AI coding agents, refreshed daily. Source of orca
-    # (hosts/coder.nix). Following our nixpkgs forgoes their cache, but the
-    # package is a patchelf'd binary and cheap to build.
-    llm-agents = {
-      url = "github:numtide/llm-agents.nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     nix-darwin = {
       url = "github:nix-darwin/nix-darwin/master";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -68,13 +60,6 @@
     nix-index-database = {
       url = "github:nix-community/nix-index-database";
       inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    # Orca's cask tap, for the desktop app on discovery. The workspace gets
-    # the same version headless through llm-agents above.
-    orca-homebrew-tap = {
-      url = "github:stablyai/homebrew-orca";
-      flake = false;
     };
 
     # ChromeOS Baguette ("containerless Crostini") support: the guest-side
@@ -135,7 +120,6 @@
           builtins.elem (nixpkgs.lib.getName pkg) [
             "1password"
             "antigravity-cli"
-            "claude-code"
             "discord"
             "google-chrome"
             "slack"
