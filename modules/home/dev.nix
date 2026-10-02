@@ -123,6 +123,43 @@
   programs = {
     home-manager.enable = true;
 
+    # Through Aperture, so every host's usage lands in one log.
+    opencode = {
+      enable = true;
+      settings = {
+        "$schema" = "https://opencode.ai/config.json";
+        autoupdate = false;
+        # Aperture holds the OpenRouter key, so these need no login on any host.
+        model = "aperture/anthropic/claude-sonnet-5.5";
+        provider = {
+          aperture = {
+            npm = "@ai-sdk/openai-compatible";
+            name = "Aperture";
+            options = {
+              baseURL = "http://aperture.cow-justice.ts.net/v1";
+              apiKey = "-";
+            };
+            # Must match the openrouter provider's list in Aperture's config.
+            models = lib.genAttrs [
+              "anthropic/claude-fable-5.1"
+              "anthropic/claude-opus-5.5"
+              "anthropic/claude-sonnet-5.5"
+              "deepseek/deepseek-v4.1-flash"
+              "google/gemini-3.8-flash"
+              "moonshotai/kimi-k3"
+              "openai/gpt-6-luna"
+              "openai/gpt-6.1-sol"
+              "qwen/qwen3.8-max-prime"
+              "x-ai/grok-4.7"
+              "z-ai/glm-5.3"
+            ] (_: {});
+          };
+          anthropic.options.baseURL = "http://aperture.cow-justice.ts.net/v1";
+          openai.options.baseURL = "http://aperture.cow-justice.ts.net/v1";
+        };
+      };
+    };
+
     atuin = {
       enable = true;
       enableFishIntegration = true;
