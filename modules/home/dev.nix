@@ -130,7 +130,7 @@
         "$schema" = "https://opencode.ai/config.json";
         autoupdate = false;
         # Aperture holds the OpenRouter key, so these need no login on any host.
-        model = "aperture/anthropic/claude-sonnet-5.5";
+        model = "aperture/stealth/space-bunny-alpha";
         provider = {
           aperture = {
             npm = "@ai-sdk/openai-compatible";
@@ -150,6 +150,7 @@
               "openai/gpt-6-luna"
               "openai/gpt-6.1-sol"
               "qwen/qwen3.8-max-prime"
+              "stealth/space-bunny-alpha"
               "x-ai/grok-4.7"
               "z-ai/glm-5.3"
             ] (_: {});
