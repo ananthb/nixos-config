@@ -87,7 +87,7 @@ in {
     inputs.nix-index-database.homeModules.nix-index
   ];
 
-  # HostName survives Bonjour conflict renames (discovery-5), so Tailscale keeps the name.
+  # Resets Bonjour's conflict renames (discovery-5). Tailscale's name is pinned in its own prefs: `tailscale set --hostname=discovery`.
   networking = {
     hostName = "discovery";
     localHostName = "discovery";
