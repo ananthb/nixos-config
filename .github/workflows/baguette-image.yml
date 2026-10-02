@@ -18,8 +18,8 @@ on:
   # First of every month, 03:17 UTC. The Chromebook guest bootstraps from
   # releases/latest/download/baguette_rootfs.img.zst, so without a cadence the
   # published image silently pins to whenever a release was last cut by hand --
-  # which is exactly how it ended up a day behind the commit that added htop and
-  # claude-code, on a VM that had never rebuilt itself since.
+  # which is exactly how it ended up a day behind the commit that added htop,
+  # on a VM that had never rebuilt itself since.
   #
   # The scheduled run publishes its own release (see below), and that release's
   # `published` event does NOT re-trigger this workflow: events raised with

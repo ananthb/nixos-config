@@ -106,21 +106,6 @@ in {
     };
   };
 
-  # Context for the auto-mode classifier, appended to the shared baseline in
-  # modules/home/dev.nix. All three facts are specific to this machine, which
-  # is why they are here and not there. mkAfter so a host always overrides
-  # the shared set rather than relying on module import order.
-  claude.settings = lib.mkAfter [
-    {
-      autoMode.environment = [
-        "$defaults"
-        "This is the user's personal Mac (hostname: discovery). ~/src/nixos-config is the nix-darwin + home-manager config for all of their hosts; applying it means `sudo darwin-rebuild switch --flake .#discovery`, which is routine here and is expected to require sudo."
-        "Homebrew packages on this machine are declared in that repo, with homebrew.onActivation.cleanup = \"zap\". A manual `brew install` does not survive the next rebuild, and removing a cask from the nix lists uninstalls the app and deletes its ~/Library data."
-        "Git commits here are signed with a YubiKey and block on a physical touch with no on-screen prompt, so a commit can look like it has hung when it is only waiting."
-      ];
-    }
-  ];
-
   programs = {
     nh = {
       enable = true;
