@@ -269,8 +269,11 @@ in {
             # that --accept-dns hands resolution to 100.100.100.100 (see
             # tailscale-up below); they stay so that a workspace which lands on
             # a node without net_admin still has a way out rather than none.
+            # --statedir is the var root: without it there are no serve certs
+            # and no Tailscale SSH host keys.
             exec ${pkgs.tailscale}/bin/tailscaled \
               --state=/home/coder/.tailscale/tailscaled.state \
+              --statedir=/home/coder/.tailscale \
               --socket=/run/tailscale/tailscaled.sock \
               --port=41641 \
               --tun="$tun" \
