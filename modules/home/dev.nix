@@ -112,6 +112,8 @@
         # OpenRouter's catalog, through Aperture, which holds the key. Aperture's
         # config (calculon-tech/platform) is the one list of what it routes.
         model = "openrouter/stealth/space-bunny-alpha";
+        # Titles and summaries; opencode's default pick is a paid model.
+        small_model = "openrouter/stealth/space-bunny-alpha";
         provider = {
           openrouter.options = {
             baseURL = "http://aperture.cow-justice.ts.net/v1";
