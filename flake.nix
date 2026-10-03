@@ -120,6 +120,7 @@
           builtins.elem (nixpkgs.lib.getName pkg) [
             "1password"
             "antigravity-cli"
+            "claude-code"
             "discord"
             "google-chrome"
             "slack"

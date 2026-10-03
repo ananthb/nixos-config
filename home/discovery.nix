@@ -78,6 +78,7 @@ in {
     packages = with pkgs;
       [
         aria2 # one-off torrent/magnet downloads: aria2c "magnet:?..."
+        claude-code
         flyctl
         hcloud
         sops
@@ -105,6 +106,38 @@ in {
       '';
     };
   };
+
+  # Settings for the claude-code above, merged into ~/.claude/settings.json on
+  # every switch. Declared here rather than in modules/home/dev.nix because
+  # this is the only host that has the CLI: a shared baseline would write a
+  # ~/.claude onto the Coder workspace and the chromebook, which run opencode.
+  # See modules/home/claude.nix for why the file is merged into rather than
+  # written as a home.file.
+  #
+  # A list, merged in order, so the baseline is first and this machine's own
+  # facts after it -- one entry cannot clobber the other's keys.
+  claude.settings = [
+    {
+      includeCoAuthoredBy = false;
+      skipAutoPermissionPrompt = true;
+      skipWorkflowUsageWarning = true;
+      permissions.defaultMode = "auto";
+      enabledPlugins = {
+        "gopls-lsp@claude-plugins-official" = true;
+        "frontend-design@claude-plugins-official" = true;
+      };
+    }
+    {
+      # Context for the auto-mode classifier. All three facts are specific to
+      # this machine, which is why they are here and not in a baseline.
+      autoMode.environment = [
+        "$defaults"
+        "This is the user's personal Mac (hostname: discovery). ~/src/nixos-config is the nix-darwin + home-manager config for all of their hosts; applying it means `sudo darwin-rebuild switch --flake .#discovery`, which is routine here and is expected to require sudo."
+        "Homebrew packages on this machine are declared in that repo, with homebrew.onActivation.cleanup = \"zap\". A manual `brew install` does not survive the next rebuild, and removing a cask from the nix lists uninstalls the app and deletes its ~/Library data."
+        "Git commits here are signed with a YubiKey and block on a physical touch with no on-screen prompt, so a commit can look like it has hung when it is only waiting."
+      ];
+    }
+  ];
 
   programs = {
     nh = {
