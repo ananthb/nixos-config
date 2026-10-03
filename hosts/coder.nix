@@ -186,6 +186,26 @@ in {
         };
       };
 
+      # Docker bind-mounts /etc/resolv.conf read-only, so tailscaled cannot
+      # point it at MagicDNS. Swap in a writable copy with the same contents.
+      resolv-conf-writable = {
+        description = "Make /etc/resolv.conf writable for tailscaled";
+        before = ["tailscaled.service"];
+        path = [pkgs.util-linux pkgs.coreutils];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          ExecStart = pkgs.writeShellScript "resolv-conf-writable" ''
+            set -eu
+            mountpoint -q /etc/resolv.conf || exit 0
+            conf="$(cat /etc/resolv.conf)"
+            umount /etc/resolv.conf
+            rm -f /etc/resolv.conf
+            printf '%s\n' "$conf" > /etc/resolv.conf
+          '';
+        };
+      };
+
       # --- Tailnet membership --------------------------------------------------
       # The workspace joins cow-justice.ts.net as one lasting node, tag:coder
       # and for some owners tag:coder-trusted as well. The auth key arrives as
@@ -222,8 +242,8 @@ in {
       tailscaled = {
         description = "Tailscale node agent";
         wantedBy = ["multi-user.target"];
-        after = ["network-online.target"];
-        wants = ["network-online.target"];
+        after = ["network-online.target" "resolv-conf-writable.service"];
+        wants = ["network-online.target" "resolv-conf-writable.service"];
         # iproute2 for the probe; the other two mirror what nixpkgs' own tailscale
         # module puts on this unit -- `su` (via the wrapper dir) and `getent` are
         # what Tailscale SSH uses to start a session as the right user.
