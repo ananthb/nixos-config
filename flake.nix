@@ -134,9 +134,6 @@
     nixosModules = {
       options = ./modules/options.nix;
       nix-settings = ./modules/nixos/nix-settings.nix;
-      # Full NixOS guest for a Coder dev workspace (systemd + coder-agent
-      # service + the shared dev env). See hosts/coder.nix.
-      coder-vm = ./hosts/coder.nix;
     };
 
     homeManagerModules = {
@@ -195,26 +192,7 @@
           ];
       };
 
-    # Full NixOS guest for the Coder dev workspace: systemd PID 1, the coder
-    # agent as a service, dev env via home-manager. Kept as a let-binding rather
-    # than a nixosConfigurations output. That was originally to dodge yazelix's
-    # import-from-derivation activation under `nix flake check --no-build`;
-    # yazelix is gone, so this could likely become a real output now -- left as
-    # is because nothing depends on it being one. It is still reusable as
-    # nixosModules.coder-vm and built via the coder-image package.
     moonlander = (pkgsFor "aarch64-darwin").callPackage ./keyboards/moonlander {};
-
-    coderNixos = nixpkgs.lib.nixosSystem {
-      specialArgs = {
-        inherit inputs username;
-        hostname = "coder";
-        system = "x86_64-linux";
-      };
-      modules = [
-        {nixpkgs.pkgs = pkgsFor "x86_64-linux";}
-        ./hosts/coder.nix
-      ];
-    };
   in {
     inherit nixosModules homeManagerModules darwinModules;
 
@@ -257,80 +235,11 @@
       ];
     };
 
-    # Standalone home-manager profile — the same dev env as the NixOS guest
-    # above, for the lightweight nix-container path or ad-hoc use. Activate with:
-    #   nix run home-manager -- switch --flake github:ananthb/nixos-config#coder
-    homeConfigurations."coder@x86_64-linux" = home-manager.lib.homeManagerConfiguration {
-      pkgs = pkgsFor "x86_64-linux";
-      extraSpecialArgs = {
-        inherit inputs username;
-        hostname = "coder";
-        system = "x86_64-linux";
-      };
-      modules = [./home/coder.nix];
-    };
-
     packages = {
       # Compressed btrfs rootfs for `vmc create --vm-type BAGUETTE --source`.
       # Buildable on any aarch64-linux host, including from inside the VM itself.
       aarch64-linux.baguette-zimage =
         self.nixosConfigurations.chromebook.config.system.build.btrfsImageCompressed;
-
-      # OCI image for the Coder NixOS workspace. Its entrypoint is the NixOS
-      # container init (systemd as PID 1); the Nomad containerd/kata driver uses
-      # this rootfs to boot the microVM, so the guest comes up as a full NixOS
-      # system with the coder-agent service. Built and pushed to GHCR by the
-      # private platform repo's coder-images workflow.
-      x86_64-linux = {
-        coder-image = let
-          pkgs = pkgsFor "x86_64-linux";
-          system = coderNixos.config.system.build.toplevel;
-
-          # Docker mounts /sys/fs/cgroup READ-ONLY for unprivileged containers --
-          # under runc and under kata alike, and --cgroupns=host does not change it.
-          # systemd as PID 1 cannot create its slices on a read-only cgroup2 tree, so
-          # it exits immediately with status 255 and prints NOTHING: the last line in
-          # the container log is stage 2's own "starting systemd...", which reads
-          # like the image is fine and the agent is at fault. Remount it first.
-          #
-          # The remount needs CAP_SYS_ADMIN, which the workspace jobspec grants with
-          # cap_add = ["sys_admin"]; that same capability is what lets stage 2 mount
-          # /proc, /dev and /run at all. If it is missing, say so on stderr rather
-          # than handing over to a systemd that will die silently.
-          init = pkgs.writeShellScript "coder-init" ''
-            if ! ${pkgs.util-linux}/bin/mount -o remount,rw /sys/fs/cgroup; then
-              echo "coder-init: could not remount /sys/fs/cgroup read-write." >&2
-              echo "coder-init: systemd will exit 255 without logging. The container" >&2
-              echo "coder-init: needs CAP_SYS_ADMIN -- cap_add = [\"sys_admin\"]." >&2
-            fi
-
-            exec ${system}/init "$@"
-          '';
-        in
-          pkgs.dockerTools.buildLayeredImage {
-            name = "coder-nixos";
-            tag = "latest";
-            # Ship /nix/var/nix/db. Without it every path in the guest's store is
-            # "invalid" to nix, so `nix-store --verify --check-contents` reports
-            # nothing and `--repair-path` refuses to run -- which is how a starship
-            # binary that had been truncated to 4521984 of its 15003888 bytes
-            # (a clean page boundary, so a partial extract) sat there segfaulting
-            # `starship init fish` on every new shell with no way to find it or any
-            # other damaged path. Costs a few MB of image and makes the store
-            # verifiable and repairable in place.
-            includeNixDB = true;
-            # `init` is deliberately NOT in contents: entries there are copied into
-            # the rootfs and must be directories, so a bare script fails the
-            # customisation layer with "Not a directory". It does not need to be --
-            # streamLayeredImage takes its closure roots from contents AND the
-            # config, so referencing it from Cmd is enough to put it in a layer.
-            contents = [system];
-            config.Cmd = [init];
-          };
-
-        # Sized by CI; the image tarball has no references to walk.
-        coder-system = coderNixos.config.system.build.toplevel;
-      };
 
       # ZSA Moonlander firmware from keyboards/moonlander. Flash with
       #   nix run .#flash-moonlander

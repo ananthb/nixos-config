@@ -19,7 +19,7 @@
   home = {
     # mkDefault so the NixOS home-manager module's values (taken from
     # users.users.${username} in hosts/chromebook.nix) win, matching the
-    # pattern in home/coder.nix.
+    # pattern used by guest-specific home profiles.
     username = lib.mkDefault username;
     homeDirectory = lib.mkDefault "/home/${username}";
     stateVersion = "25.05";
