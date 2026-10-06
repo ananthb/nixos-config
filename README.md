@@ -1,9 +1,9 @@
 # nixos-config
 
-How I run my machines. It holds a shared Nix dev environment (fish, yazelix,
-nixvim, git, direnv, starship, and CLI tools). It also holds the NixOS,
-nix-darwin, and home-manager configs that consume that environment. These run
-my laptop and my Coder dev VMs.
+How I run my machines. It holds a shared Nix dev environment (fish, Helix, git,
+direnv, starship, and CLI tools), plus the NixOS, nix-darwin, and home-manager
+configs for my personal hosts. The Coder workspace image is owned by the
+platform repo and imports the shared home modules from here.
 
 ## Secrets
 
