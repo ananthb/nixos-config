@@ -1,5 +1,5 @@
 {
-  description = "Ananth's dev environment: reusable Nix modules, the discovery (nix-darwin) host, and the coder dev-VM profile";
+  description = "Ananth's dev environment: reusable Nix modules and personal NixOS/nix-darwin hosts";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
