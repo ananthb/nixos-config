@@ -115,8 +115,9 @@
         model = "openrouter/stealth/space-bunny-alpha";
         # Titles and summaries; opencode's default pick is a paid model.
         small_model = "openrouter/stealth/space-bunny-alpha";
-        # Only what Aperture routes; the rest of models.dev stays out of /models.
-        enabled_providers = ["anthropic" "openai" "openrouter" "opencode-go"];
+        # Only the two providers Aperture routes for us; the rest of models.dev
+        # stays out of /models. Every model in each is enabled.
+        enabled_providers = ["openrouter" "opencode-go"];
         provider = {
           openrouter.options = {
             baseURL = "http://aperture.cow-justice.ts.net/v1";
@@ -126,8 +127,6 @@
             baseURL = "http://aperture.cow-justice.ts.net/v1";
             apiKey = "-";
           };
-          anthropic.options.baseURL = "http://aperture.cow-justice.ts.net/v1";
-          openai.options.baseURL = "http://aperture.cow-justice.ts.net/v1";
         };
       };
     };
