@@ -123,6 +123,7 @@ in {
     ];
     casks = [
       "1password"
+      "betterdisplay"
       "discord"
       "drata-agent"
       # GUI apps stay casks. macOS wants a real .app bundle in /Applications
