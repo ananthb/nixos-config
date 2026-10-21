@@ -22,18 +22,29 @@
   homeDir = "/Users/" + cfg.username;
 in {
   imports = [
+    ../modules/home/macos-secure-enclave-ssh.nix
     inputs.scurry.homeManagerModules.default
     inputs.starla.homeManagerModules.default
   ];
 
-  services.scurry.enable = true;
+  services = {
+    macosSecureEnclaveSsh = {
+      enable = true;
+      label = "ananth@discovery";
+    };
 
-  services.starla = {
-    enable = true;
-    tray.enable = true;
+    scurry.enable = true;
+
+    starla = {
+      enable = true;
+      tray.enable = true;
+    };
   };
 
   sops = {
+    # Must stay on disk: sops derives the age key by reading the private key,
+    # and the Secure Enclave identity beside it is non-exportable. That is the
+    # one job id_ed25519 keeps; SSH authentication uses the enclave key.
     age.sshKeyPaths = [(homeDir + "/.ssh/id_ed25519")];
     defaultSopsFile = ../secrets/dev.yaml;
 
@@ -172,22 +183,10 @@ in {
           AddKeysToAgent = "no";
           IdentitiesOnly = "yes";
         };
-        # flatcar-gateway (the CM4) has the plain discovery key in its
-        # authorized_keys, so skip the YubiKey and its askpass prompt.
-        # Temporary: this node is mid-conversion to its replacement, whose
-        # Flatcar root authorizes only the two YubiKey keys. Drop this
-        # block once that host takes over.
-        "flatcar-gateway flatcar-gateway.local 10.15.16.101" = {
-          IdentityFile = "~/.ssh/id_ed25519";
-          IdentitiesOnly = "yes";
-        };
         # Exclude codespace hosts (cs.* and cs-*) so the YubiKey
         # IdentityFile doesn't block `gh codespace ssh` when the
-        # device isn't plugged in. flatcar-gateway is
-        # excluded for a different reason: ssh accumulates IdentityFile
-        # across every matching block, so leaving it in here would put
-        # the YubiKey ahead of id_ed25519 and prompt anyway.
-        "* !cs-* !cs.* !flatcar-gateway !flatcar-gateway.local !10.15.16.101" = {
+        # device isn't plugged in.
+        "* !cs-* !cs.*" = {
           IdentityFile = "~/.ssh/yubikey_5c_nano";
         };
       };
