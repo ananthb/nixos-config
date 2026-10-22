@@ -62,6 +62,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    orca-homebrew-tap = {
+      url = "github:stablyai/homebrew-orca";
+      flake = false;
+    };
+
     # ChromeOS Baguette ("containerless Crostini") support: the guest-side
     # integration module (vshd, maitred, garcon, sommelier) plus the btrfs
     # rootfs image builders. See hosts/chromebook.nix.
@@ -93,7 +98,6 @@
     self,
     nixpkgs,
     nix-darwin,
-    home-manager,
     git-hooks,
     ...
   } @ inputs: let
@@ -120,7 +124,6 @@
           builtins.elem (nixpkgs.lib.getName pkg) [
             "1password"
             "antigravity-cli"
-            "claude-code"
             "discord"
             "google-chrome"
             "slack"
