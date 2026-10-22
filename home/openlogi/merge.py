@@ -22,19 +22,23 @@ def merge(target: MutableMapping, overlay: MutableMapping) -> None:
 
 
 def main() -> int:
-    if len(sys.argv) != 4:
-        print(f"usage: {sys.argv[0]} OVERLAY SEED TARGET", file=sys.stderr)
+    if len(sys.argv) != 3:
+        print(f"usage: {sys.argv[0]} OVERLAY TARGET", file=sys.stderr)
         return 2
 
-    overlay_path, seed_path, target_path = map(Path, sys.argv[1:])
+    overlay_path, target_path = map(Path, sys.argv[1:])
     overlay = tomlkit.parse(overlay_path.read_text())
 
-    if target_path.exists():
-        original = target_path.read_text()
-        config = tomlkit.parse(original)
-    else:
-        original = None
-        config = tomlkit.parse(seed_path.read_text())
+    if not target_path.exists():
+        print(
+            f"{target_path} does not exist yet; start OpenLogi once, then rebuild "
+            "to apply the managed settings.",
+            file=sys.stderr,
+        )
+        return 0
+
+    original = target_path.read_text()
+    config = tomlkit.parse(original)
 
     merge(config, overlay)
     rendered = tomlkit.dumps(config)
