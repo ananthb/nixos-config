@@ -120,13 +120,11 @@ in {
   };
 
   # Merge the Nix-managed subset over the live config instead of replacing it,
-  # so GUI edits to anything not named in managed.toml survive a rebuild. The
-  # full config is only a seed for a machine that has never run OpenLogi.
+  # so GUI edits to anything not named in managed.toml survive a rebuild.
   home.activation.openlogiConfig = lib.hm.dag.entryAfter ["writeBoundary"] ''
     run ${openlogiPython}/bin/python3 \
       ${./openlogi/merge.py} \
       ${./openlogi/managed.toml} \
-      ${./openlogi/config.toml} \
       "${config.xdg.configHome}/openlogi/config.toml"
   '';
 
