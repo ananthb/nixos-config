@@ -124,6 +124,10 @@ in {
     casks = [
       "1password"
       "betterdisplay"
+      # The Dell U3225QE exposes DisplayPort audio without native CoreAudio
+      # volume or DDC VCP 0x62. BetterDisplay cannot change a fixed-level
+      # output, so eqMac provides the software volume stage for this route.
+      "eqmac"
       "discord"
       "drata-agent"
       # GUI apps stay casks. macOS wants a real .app bundle in /Applications
