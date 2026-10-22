@@ -118,15 +118,11 @@ in {
     };
   };
 
-  # OpenLogi keeps its live settings in a writable TOML file and rewrites it
-  # when the GUI changes something. Copy the tracked version into place during
-  # activation instead of symlinking it into the store: OpenLogi's atomic save
-  # would replace the symlink anyway. Rebuilds are the source of truth; quit
-  # OpenLogi first so an in-flight save cannot win afterward.
-  home.activation.openlogiConfig = lib.hm.dag.entryAfter ["writeBoundary"] ''
-    run mkdir -p "${config.xdg.configHome}/openlogi"
-    run install -m 0600 ${./openlogi/config.toml} "${config.xdg.configHome}/openlogi/config.toml"
-  '';
+  # OpenLogi reads this on startup and rewrites it atomically when the GUI
+  # changes something. Home Manager links it to the read-only store; the app's
+  # next save replaces that symlink with a writable file, and the following
+  # rebuild relinks it.
+  xdg.configFile."openlogi/config.toml".source = ./openlogi/config.toml;
 
   # Settings for the claude-code above, merged into ~/.claude/settings.json on
   # every switch. Declared here rather than in modules/home/dev.nix because
