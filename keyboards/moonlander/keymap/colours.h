@@ -64,7 +64,7 @@ static const uint8_t PROGMEM colours[][MATRIX_ROWS][MATRIX_COLS] = {
     OFF,     OFF,     OFF,     OFF,     OFF,     OFF,     OFF,        OFF,     OFF,     OFF,     OFF,     OFF,     OFF,     OFF,
     OFF,     OFF,     OFF,     OFF,     OFF,     OFF,     OFF,        OFF,     OFF,     OFF,     OFF,     OFF,     OFF,     OFF,
     OFF,     GREEN,   GREEN,   GREEN,   GREEN,   GREEN,   OFF,        OFF,     GREEN,   GREEN,   GREEN,   GREEN,   GREEN,   OFF,
-    OFF,     OFF,     OFF,     OFF,     OFF,     OFF,                 OFF,     OFF,     OFF,     OFF,     OFF,     OFF,
+    OFF,     AMBER,   SKY,     ORCHID,  OFF,     OFF,                 OFF,     OFF,     OFF,     OFF,     OFF,     OFF,
     OFF,     OFF,     OFF,     OFF,     OFF,     OFF,                 OFF,     OFF,     OFF,     OFF,     OFF,     OFF,
                                         OFF,     OFF,     OFF,        OFF,     OFF,     OFF
   ),
