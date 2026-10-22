@@ -1,0 +1,4 @@
+# Settings in this file are merged into the live OpenLogi config on rebuild.
+# Keep only behaviour Nix should enforce; GUI changes to other keys survive.
+[devices."serial:2450zb53ywz8".bindings.GestureButton]
+Up = "MissionControl"

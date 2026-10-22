@@ -20,6 +20,7 @@
 }: let
   cfg = config.machines;
   homeDir = "/Users/" + cfg.username;
+  openlogiPython = pkgs.python3.withPackages (ps: [ps.tomlkit]);
 in {
   imports = [
     ../modules/home/macos-secure-enclave-ssh.nix
@@ -118,11 +119,16 @@ in {
     };
   };
 
-  # OpenLogi resolves this symlink before writing, so a GUI save targets the
-  # read-only store and fails with a config error. It only saves when a setting
-  # or device metadata changes, not on a timer; edit here and rebuild instead.
-  # Use a writable copy if GUI edits should stick.
-  xdg.configFile."openlogi/config.toml".source = ./openlogi/config.toml;
+  # Merge the Nix-managed subset over the live config instead of replacing it,
+  # so GUI edits to anything not named in managed.toml survive a rebuild. The
+  # full config is only a seed for a machine that has never run OpenLogi.
+  home.activation.openlogiConfig = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    run ${openlogiPython}/bin/python3 \
+      ${./openlogi/merge.py} \
+      ${./openlogi/managed.toml} \
+      ${./openlogi/config.toml} \
+      "${config.xdg.configHome}/openlogi/config.toml"
+  '';
 
   # Settings for the claude-code above, merged into ~/.claude/settings.json on
   # every switch. Declared here rather than in modules/home/dev.nix because
