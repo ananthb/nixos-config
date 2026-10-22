@@ -118,10 +118,10 @@ in {
     };
   };
 
-  # OpenLogi reads this on startup and rewrites it atomically when the GUI
-  # changes something. Home Manager links it to the read-only store; the app's
-  # next save replaces that symlink with a writable file, and the following
-  # rebuild relinks it.
+  # OpenLogi resolves this symlink before writing, so a GUI save targets the
+  # read-only store and fails with a config error. It only saves when a setting
+  # or device metadata changes, not on a timer; edit here and rebuild instead.
+  # Use a writable copy if GUI edits should stick.
   xdg.configFile."openlogi/config.toml".source = ./openlogi/config.toml;
 
   # Settings for the claude-code above, merged into ~/.claude/settings.json on
