@@ -97,7 +97,7 @@ in {
   nix-homebrew.user = cfg.username;
   nix-homebrew.taps = {
     "theseal/homebrew-ssh-askpass" = inputs.askpass-homebrew-tap;
-    "stablyai/orca" = inputs.orca-homebrew-tap;
+    "stablyai/homebrew-orca" = inputs.orca-homebrew-tap;
   };
 
   # Homebrew 4 refuses to load a formula from a third-party tap until the tap is
