@@ -49,22 +49,6 @@
         "type": "github"
       }
     },
-    "coder-homebrew-tap": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1792528162,
-        "narHash": "sha256-FehJhZqKfKpcTJYcTs2C81niUTNoYhGWFvO17zdZ/1k=",
-        "owner": "coder",
-        "repo": "homebrew-coder",
-        "rev": "a2a2f9b4f8e71bbc9a78a7f7412fa0a7cc5836c7",
-        "type": "github"
-      },
-      "original": {
-        "owner": "coder",
-        "repo": "homebrew-coder",
-        "type": "github"
-      }
-    },
     "determinate": {
       "inputs": {
         "determinate-nixd-aarch64-darwin": "determinate-nixd-aarch64-darwin",
@@ -696,7 +680,6 @@
       "inputs": {
         "askpass-homebrew-tap": "askpass-homebrew-tap",
         "brew-src": "brew-src",
-        "coder-homebrew-tap": "coder-homebrew-tap",
         "determinate": "determinate",
         "git-hooks": "git-hooks",
         "home-manager": "home-manager",

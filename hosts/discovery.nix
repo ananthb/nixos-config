@@ -98,7 +98,6 @@ in {
   nix-homebrew.taps = {
     "theseal/homebrew-ssh-askpass" = inputs.askpass-homebrew-tap;
     "stablyai/homebrew-orca" = inputs.orca-homebrew-tap;
-    "coder/homebrew-coder" = inputs.coder-homebrew-tap;
   };
 
   # Homebrew 4 refuses to load a formula from a third-party tap until the tap is
@@ -112,7 +111,7 @@ in {
   # invokes bundle itself; activation runs as root and brew refuses that.
   system.activationScripts.preActivation.text = ''
     if [ -x /opt/homebrew/bin/brew ]; then
-      for tap in theseal/ssh-askpass stablyai/orca coder/coder; do
+      for tap in theseal/ssh-askpass stablyai/orca; do
         sudo --user=${cfg.username} --set-home /opt/homebrew/bin/brew trust "$tap" \
           >/dev/null 2>&1 || true
       done
@@ -128,9 +127,6 @@ in {
     casks = [
       "1password"
       "betterdisplay"
-      # Cask-only (it installs a VPN network extension), so it lives here
-      # rather than in nixpkgs. The tap is trusted above, like stablyai/orca.
-      "coder/coder/coder-desktop"
       # The Dell U3225QE exposes DisplayPort audio without native CoreAudio
       # volume or DDC VCP 0x62. BetterDisplay cannot change a fixed-level
       # output, so eqMac provides the software volume stage for this route.
