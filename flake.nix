@@ -18,6 +18,11 @@
       flake = false;
     };
 
+    coder-homebrew-tap = {
+      url = "github:coder/homebrew-coder";
+      flake = false;
+    };
+
     # Determinate Nix manages the daemon on discovery, replacing nix-darwin's
     # native Nix management (see hosts/discovery.nix).
     determinate.url = "https://flakehub.com/f/DeterminateSystems/determinate/3";
