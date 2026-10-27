@@ -13,7 +13,6 @@
   ...
 }: {
   imports = [
-    ./claude.nix
     ./helix.nix
   ];
 
