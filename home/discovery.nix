@@ -140,7 +140,7 @@ in {
       # The only host with a YubiKey, so the only one that can sign.
       signing = {
         format = "ssh";
-        key = "~/.ssh/yubikey_5c_nano";
+        key = "~/.ssh/yubikey_5c";
         signByDefault = true;
       };
       settings = {
