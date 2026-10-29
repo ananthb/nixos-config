@@ -111,9 +111,9 @@
         autoupdate = false;
         # OpenRouter's catalog, through Aperture, which holds the key. Aperture's
         # config (calculon-tech/platform) is the one list of what it routes.
-        model = "openrouter/stealth/space-bunny-alpha";
+        model = "openrouter/deepseek/deepseek-v4.1-flash";
         # Titles and summaries; opencode's default pick is a paid model.
-        small_model = "openrouter/stealth/space-bunny-alpha";
+        small_model = "openrouter/deepseek/deepseek-v4.1-flash";
         # Only the two providers Aperture routes for us; the rest of models.dev
         # stays out of /models. Every model in each is enabled.
         enabled_providers = ["openrouter" "opencode-go"];
