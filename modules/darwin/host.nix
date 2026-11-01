@@ -25,6 +25,18 @@ in {
   # 'run-services-as-root-for-better-multiuser-support' thing.
   system.primaryUser = cfg.username;
 
+  # Rex prepends REX_BIN_DIR to PATH in every terminal it opens, but
+  # nix-darwin's set-environment -- sourced by fish before any user config --
+  # rebuilds PATH from a fixed list and throws that entry away. Running after
+  # that reset puts it back, so `rex` resolves to the server the app is
+  # actually running instead of vanishing. Skip when unset: outside Rex the
+  # variable is empty, and prepending it would add an empty PATH entry.
+  environment.interactiveShellInit = ''
+    if [ -n "$REX_BIN_DIR" ]; then
+      export PATH="$REX_BIN_DIR:$PATH"
+    fi
+  '';
+
   # Used for backwards compatibility, please read the changelog before changing.
   # $ darwin-rebuild changelog
   system.stateVersion = 4;
