@@ -68,9 +68,14 @@ in {
         sc_auth=/usr/bin/sc_auth
       fi
 
+      # Every lookup below tolerates failure. Home Manager sources this snippet
+      # into a `set -eu -o pipefail` script, so one non-zero command
+      # substitution aborts the entire switch -- even though there is nothing
+      # here that must be fatal.
       list_hashes() {
         "$sc_auth" list-ctk-identities -t "$1" 2>/dev/null \
-          | /usr/bin/awk -v label="$label" 'NR > 1 && $4 == label { print $2; exit }'
+          | /usr/bin/awk -v label="$label" 'NR > 1 && $4 == label { print $2; exit }' \
+          || true
       }
 
       if [[ -v DRY_RUN ]]; then
@@ -91,7 +96,11 @@ in {
         fi
 
         wantFp="$(list_hashes ssh)"
-        haveFp="$(/usr/bin/ssh-keygen -lf "$stub.pub" 2>/dev/null | /usr/bin/awk '{ print $2 }')"
+        # `ssh-keygen -lf` exits 255 when the stub has not been exported yet
+        # (the normal first-switch case), which pipefail would turn into a
+        # failed activation before the export below ever runs.
+        haveFp="$(/usr/bin/ssh-keygen -lf "$stub.pub" 2>/dev/null \
+          | /usr/bin/awk '{ print $2 }' || true)"
 
         # Fingerprints are compared rather than file mtimes because CTK
         # identities expire after a year; a recreated identity reuses nothing.
@@ -101,8 +110,10 @@ in {
           if (cd "$tmp" && KEYCHAIN_CERTIFICATES="$ctkHash" \
             SSH_SK_PROVIDER=/usr/lib/ssh-keychain.dylib \
             /usr/bin/ssh-keygen -w /usr/lib/ssh-keychain.dylib -K -N "" >/dev/null 2>&1); then
-            /usr/bin/install -m 600 "$tmp/id_ecdsa_sk_rk" "$stub"
-            /usr/bin/install -m 644 "$tmp/id_ecdsa_sk_rk.pub" "$stub.pub"
+            if ! { /usr/bin/install -m 600 "$tmp/id_ecdsa_sk_rk" "$stub" \
+              && /usr/bin/install -m 644 "$tmp/id_ecdsa_sk_rk.pub" "$stub.pub"; }; then
+              warnEcho "could not install the Secure Enclave public key for $label"
+            fi
           else
             warnEcho "could not export the Secure Enclave public key for $label"
           fi
