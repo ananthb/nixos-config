@@ -62,6 +62,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    nixvim = {
+      url = "github:nix-community/nixvim";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     orca-homebrew-tap = {
       url = "github:stablyai/homebrew-orca";
       flake = false;
@@ -143,7 +148,15 @@
       default = ./modules/home;
       options = ./modules/home/options.nix;
       shell = ./modules/home/shell.nix;
-      dev = ./modules/home/dev.nix;
+      # Compose the editor module here so consumers of this flake output get
+      # the nixvim module too, without having to pass our `inputs` through
+      # their own specialArgs.
+      dev = {
+        imports = [
+          inputs.nixvim.homeModules.nixvim
+          ./modules/home/dev.nix
+        ];
+      };
     };
 
     darwinModules = {

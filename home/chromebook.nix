@@ -11,6 +11,7 @@
 }: {
   imports = [
     inputs.nix-index-database.homeModules.nix-index
+    inputs.nixvim.homeModules.nixvim
     ../modules/home/options.nix
     ../modules/home/shell.nix
     ../modules/home/dev.nix
@@ -29,15 +30,18 @@
   # guest, so keep commits unsigned.
   programs.git.signing.signByDefault = lib.mkForce false;
 
-  # The language catalog in modules/home/helix.nix is sized for a
+  # The language catalog in modules/home/neovim.nix is sized for a
   # workstation. On a 20G VM the heavyweights cost more store than they earn
   # on a machine that mostly sees this repo: rust drags in rustc and cargo, c
   # drags in LLVM, ltex is a JVM app, and python / typescript / html / css /
   # docker each bring Node. Keep the languages this host actually edits --
   # Nix, Go, Terraform/HCL, shell, YAML, Markdown, Lua -- and drop the rest.
   # These stay enabled on discovery and coder; delete an entry to get one back.
-  dev.helix = {
+  # ansible is dropped whole, not just its linter: the package alone is
+  # ~0.9 GiB and nothing here edits playbooks.
+  dev.neovim = {
     disable = [
+      "ansible"
       "c"
       "css"
       "docker"
@@ -52,7 +56,6 @@
     # Linters for languages this host keeps but doesn't need audited.
     # golangci-lint and yamllint stay: they cover what it still edits.
     disableLinters = [
-      "ansible-lint"
       "tfsec"
     ];
   };
