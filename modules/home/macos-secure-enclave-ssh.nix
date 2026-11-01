@@ -59,19 +59,30 @@ in {
       label=${lib.escapeShellArg cfg.label}
       stub=${lib.escapeShellArg cfg.identityFile}
 
+      # macOS 26 moved sc_auth from /usr/bin to /usr/sbin. Look in both so a
+      # system upgrade cannot turn this step into a bare "command not found"
+      # (exit 127) that aborts the whole activation.
+      if [ -x /usr/sbin/sc_auth ]; then
+        sc_auth=/usr/sbin/sc_auth
+      else
+        sc_auth=/usr/bin/sc_auth
+      fi
+
       list_hashes() {
-        /usr/bin/sc_auth list-ctk-identities -t "$1" 2>/dev/null \
+        "$sc_auth" list-ctk-identities -t "$1" 2>/dev/null \
           | /usr/bin/awk -v label="$label" 'NR > 1 && $4 == label { print $2; exit }'
       }
 
       if [[ -v DRY_RUN ]]; then
         echo "would ensure Secure Enclave SSH identity $label"
+      elif [ ! -x "$sc_auth" ]; then
+        warnEcho "sc_auth not found; cannot ensure Secure Enclave SSH identity $label"
       else
         mkdir -p "$(dirname "$stub")"
         ctkHash="$(list_hashes sha1)"
 
         if [ -z "$ctkHash" ]; then
-          if /usr/bin/sc_auth create-ctk-identity -l "$label" -k p-256-ne \
+          if "$sc_auth" create-ctk-identity -l "$label" -k p-256-ne \
             -t ${protection} -N "$label" >/dev/null; then
             ctkHash="$(list_hashes sha1)"
           else
