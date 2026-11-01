@@ -1,5 +1,5 @@
 # THE development environment. Every profile imports this and gets the same
-# CLI: helix, fish, zellij + yazi, git, direnv, gpg, and the package baseline
+# CLI: neovim, fish, zellij + yazi, git, direnv, gpg, and the package baseline
 # below. There is deliberately no second "dev" file and no "common" --
 # those existed side by side and drifted, so `git`, `mosh`, `htop` and friends
 # were copy-pasted across four profiles and `htop` reached only one of them.
@@ -13,7 +13,7 @@
   ...
 }: {
   imports = [
-    ./helix.nix
+    ./neovim.nix
   ];
 
   # Building `man home-configuration.nix` forces nixpkgs' options.json doc
@@ -204,7 +204,7 @@
         nd = "nix develop";
 
         lg = "lazygit";
-        v = "hx";
+        v = "nvim";
         cat = "bat";
       };
     };
@@ -259,11 +259,10 @@
     # Plain zellij, declared here rather than arriving as a side effect.
     # yazelix used to pull the multiplexer in transitively -- and on the Coder
     # workspace that produced no `zellij` on PATH at all, out of 250 binaries.
-    # It also brought its own Helix build (a Steel-enabled fork), a second
-    # ~/.config/yazelix/helix config tree, its own cachix, and an activation
-    # that `nix flake check` could not evaluate. The one integration worth
-    # keeping -- yazi opening files into a pane -- is the opener below, which
-    # only ever needed $ZELLIJ.
+    # It also brought its own editor build, a second editor config tree, its
+    # own cachix, and an activation that `nix flake check` could not evaluate.
+    # The one integration worth keeping -- yazi opening files into a pane -- is
+    # the opener below, which only ever needed $ZELLIJ.
     zellij = {
       enable = true;
 
@@ -321,7 +320,7 @@
         opener = {
           edit = [
             {
-              run = ''if [ -n "$ZELLIJ" ]; then zellij edit "$@"; else hx "$@"; fi'';
+              run = ''if [ -n "$ZELLIJ" ]; then zellij edit "$@"; else nvim "$@"; fi'';
               block = true;
               for = "unix";
             }
@@ -385,7 +384,7 @@
       };
 
       settings = {
-        core.editor = "hx";
+        core.editor = "nvim";
         core.pager = "delta";
         init.defaultBranch = "main";
 

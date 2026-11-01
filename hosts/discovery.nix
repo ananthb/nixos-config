@@ -78,6 +78,7 @@ in {
     in [
       ../modules/home/options.nix
       ../modules/home/shell.nix
+      inputs.nixvim.homeModules.nixvim
       ../modules/home/dev.nix
       hostModule
     ];
