@@ -703,22 +703,6 @@
         "type": "github"
       }
     },
-    "orca-homebrew-tap": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1793059789,
-        "narHash": "sha256-0o2J+eq5IM953k73AGkFwA4sl0jeD355RmuJfdb6y6Q=",
-        "owner": "stablyai",
-        "repo": "homebrew-orca",
-        "rev": "76fe601e7cfb07541a5d06aaf30d30462fbb3b53",
-        "type": "github"
-      },
-      "original": {
-        "owner": "stablyai",
-        "repo": "homebrew-orca",
-        "type": "github"
-      }
-    },
     "root": {
       "inputs": {
         "askpass-homebrew-tap": "askpass-homebrew-tap",
@@ -735,7 +719,6 @@
         "nixos-crostini": "nixos-crostini",
         "nixpkgs": "nixpkgs_3",
         "nixvim": "nixvim",
-        "orca-homebrew-tap": "orca-homebrew-tap",
         "scurry": "scurry",
         "sops-nix": "sops-nix",
         "starla": "starla"

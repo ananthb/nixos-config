@@ -98,7 +98,6 @@ in {
   nix-homebrew.user = cfg.username;
   nix-homebrew.taps = {
     "theseal/homebrew-ssh-askpass" = inputs.askpass-homebrew-tap;
-    "stablyai/homebrew-orca" = inputs.orca-homebrew-tap;
   };
 
   # Homebrew 4 refuses to load a formula from a third-party tap until the tap is
@@ -112,7 +111,7 @@ in {
   # invokes bundle itself; activation runs as root and brew refuses that.
   system.activationScripts.preActivation.text = ''
     if [ -x /opt/homebrew/bin/brew ]; then
-      for tap in theseal/ssh-askpass stablyai/orca; do
+      for tap in theseal/ssh-askpass; do
         sudo --user=${cfg.username} --set-home /opt/homebrew/bin/brew trust "$tap" \
           >/dev/null 2>&1 || true
       done
@@ -156,7 +155,6 @@ in {
       "signal"
       "slack"
       "slack-cli"
-      "stablyai/orca/orca"
       "visual-studio-code"
       "vlc"
       "yubico-authenticator"
