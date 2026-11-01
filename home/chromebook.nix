@@ -33,24 +33,19 @@
   # The language catalog in modules/home/neovim.nix is sized for a
   # workstation. On a 20G VM the heavyweights cost more store than they earn
   # on a machine that mostly sees this repo: rust drags in rustc and cargo, c
-  # drags in LLVM, ltex is a JVM app, and python / typescript / html / css /
-  # docker each bring Node. Keep the languages this host actually edits --
-  # Nix, Go, Terraform/HCL, shell, YAML, Markdown, Lua -- and drop the rest.
+  # drags in LLVM, elm drags in the compiler, and python / html / css / docker
+  # each bring Node. Keep the languages this host actually edits -- Nix, Go,
+  # Terraform/HCL, shell, YAML, Markdown, Lua -- and drop the rest.
   # These stay enabled on discovery and coder; delete an entry to get one back.
-  # ansible is dropped whole, not just its linter: the package alone is
-  # ~0.9 GiB and nothing here edits playbooks.
   dev.neovim = {
     disable = [
-      "ansible"
       "c"
       "css"
       "docker"
+      "elm"
       "html"
-      "ltex"
       "python"
       "rust"
-      "typescript"
-      "zig"
     ];
 
     # Linters for languages this host keeps but doesn't need audited.

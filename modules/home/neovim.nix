@@ -28,7 +28,6 @@
     foldl'
     mapAttrs
     mkOption
-    optionalAttrs
     removeAttrs
     types
     unique
@@ -83,6 +82,17 @@
       parsers = ["dockerfile"];
     };
 
+    elm = {
+      packages = [
+        pkgs.elmPackages.elm
+        pkgs.elmPackages.elm-format
+        pkgs.elmPackages.elm-language-server
+      ];
+      servers.elmls = {};
+      formatters.elm = ["elm-format"];
+      parsers = ["elm"];
+    };
+
     go = {
       packages = [pkgs.go pkgs.gopls pkgs.gotools pkgs.golangci-lint pkgs.delve];
       servers.gopls = {};
@@ -95,17 +105,6 @@
       packages = [pkgs.vscode-langservers-extracted];
       servers.html = {};
       parsers = ["html"];
-    };
-
-    ltex = {
-      packages = [pkgs.ltex-ls];
-      servers.ltex = {
-        settings.ltex = {
-          language = "en-US";
-          enabled = ["latex" "tex" "markdown"];
-          completionEnabled = true;
-        };
-      };
     };
 
     lua = {
@@ -162,34 +161,12 @@
       parsers = ["hcl" "terraform"];
     };
 
-    typescript = {
-      packages = [pkgs.typescript-language-server];
-      servers.ts_ls = {};
-      parsers = ["typescript" "tsx" "javascript" "jsdoc"];
-    };
-
     yaml = {
       packages = [pkgs.yaml-language-server pkgs.yamlfix pkgs.yamllint];
       servers.yamlls = {};
       formatters.yaml = ["yamlfix"];
       linters.yaml = ["yamllint"];
       parsers = ["yaml"];
-    };
-
-    # Split from yaml so a host can drop it: ansible-lint pulls ansible-core
-    # and python3, ~0.9 GiB.
-    ansible = {
-      packages = [pkgs.ansible-lint];
-      # The custom linter below scopes this to real Ansible repositories, so
-      # every stray YAML file does not pick up playbook rules.
-      linters.yaml = ["ansible_lint"];
-    };
-
-    zig = {
-      packages = [pkgs.zls pkgs.zig];
-      servers.zls = {};
-      formatters.zig = ["zigfmt"];
-      parsers = ["zig"];
     };
   };
 
@@ -212,8 +189,6 @@
     filterAttrs (_: names: names != [])
     (mapAttrs (_: names: filter (name: !(elem name cfg.disableLinters)) names)
       (zipAttrsWith (_: concatLists) (map (e: e.linters or {}) active)));
-
-  allLinters = unique (concatLists (attrValues lintByFt));
 
   # --- Treesitter ----------------------------------------------------------
   # Parsers the editor itself needs, regardless of which languages are on.
@@ -260,7 +235,7 @@ in {
     disable = mkOption {
       type = types.listOf types.str;
       default = [];
-      example = ["rust" "zig"];
+      example = ["rust" "c"];
       description = ''
         Language catalog entries to leave out on this host. Drops the entry's
         language servers, formatters, linters, treesitter parsers and packages.
@@ -509,23 +484,6 @@ in {
         lint = {
           enable = lintByFt != {};
           lintersByFt = lintByFt;
-          # nvim-lint's stock ansible_lint linter would run on every YAML
-          # buffer. Override it with the same command plus a root check.
-          customLinters = optionalAttrs (elem "ansible_lint" allLinters) {
-            ansible_lint = {
-              cmd = "ansible-lint";
-              args = ["-p" "--nocolor"];
-              ignore_exitcode = true;
-              condition = {
-                __raw = ''
-                  function()
-                    return vim.fs.root(0, { "ansible.cfg", ".ansible-lint" }) ~= nil
-                  end
-                '';
-              };
-              parser = "require('lint.parser').from_errorformat('%f:%l:%c: %m,%f:%l: %m', { source = 'ansible-lint', severity = vim.diagnostic.severity.INFO })";
-            };
-          };
         };
 
         blink-cmp = {
