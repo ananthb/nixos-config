@@ -150,7 +150,6 @@ in {
       "signal"
       "slack"
       "slack-cli"
-      "visual-studio-code"
       "vlc"
       "yubico-authenticator"
     ];
