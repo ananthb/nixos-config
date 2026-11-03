@@ -107,11 +107,28 @@ in {
         if [ -n "$ctkHash" ] && [ "$wantFp" != "$haveFp" ]; then
           tmp="$(/usr/bin/mktemp -d)"
 
+          # `ssh-keygen -K` always asks for an authenticator PIN, but the
+          # keychain provider has no PIN: a CTK identity is protected by Touch
+          # ID (`-t bio`), and the provider ignores whatever the prompt
+          # returns. Answer it with an empty PIN so activation never blocks on
+          # a terminal prompt (or a pointless GUI one).
           if (cd "$tmp" && KEYCHAIN_CERTIFICATES="$ctkHash" \
             SSH_SK_PROVIDER=/usr/lib/ssh-keychain.dylib \
+            SSH_ASKPASS=/usr/bin/true SSH_ASKPASS_REQUIRE=force \
             /usr/bin/ssh-keygen -w /usr/lib/ssh-keychain.dylib -K -N "" >/dev/null 2>&1); then
-            if ! { /usr/bin/install -m 600 "$tmp/id_ecdsa_sk_rk" "$stub" \
-              && /usr/bin/install -m 644 "$tmp/id_ecdsa_sk_rk.pub" "$stub.pub"; }; then
+            # The exported stub is named after the identity's CN
+            # (`id_ecdsa_sk_rk_ananth@discovery`), not plain
+            # `id_ecdsa_sk_rk`. Looking it up by prefix keeps this working
+            # when the label changes, and stops a missing rename from making
+            # activation re-export (and re-prompt) on every switch.
+            exportedKey="$(/usr/bin/find "$tmp" -maxdepth 1 \
+              -name 'id_ecdsa_sk_rk*' ! -name '*.pub' -print -quit)"
+
+            if [ -n "$exportedKey" ] \
+              && /usr/bin/install -m 600 "$exportedKey" "$stub" \
+              && /usr/bin/install -m 644 "$exportedKey.pub" "$stub.pub"; then
+              :
+            else
               warnEcho "could not install the Secure Enclave public key for $label"
             fi
           else
