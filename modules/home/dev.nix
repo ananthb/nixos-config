@@ -1,5 +1,5 @@
 # THE development environment. Every profile imports this and gets the same
-# CLI: neovim, fish, zellij + yazi, git, direnv, gpg, and the package baseline
+# CLI: neovim, fish, git, direnv, gpg, and the package baseline
 # below. There is deliberately no second "dev" file and no "common" --
 # those existed side by side and drifted, so `git`, `mosh`, `htop` and friends
 # were copy-pasted across four profiles and `htop` reached only one of them.
@@ -253,93 +253,6 @@
           success_symbol = "[❯](bold green)";
           error_symbol = "[❯](bold red)";
         };
-      };
-    };
-
-    # Plain zellij, declared here rather than arriving as a side effect.
-    # yazelix used to pull the multiplexer in transitively -- and on the Coder
-    # workspace that produced no `zellij` on PATH at all, out of 250 binaries.
-    # It also brought its own editor build, a second editor config tree, its
-    # own cachix, and an activation that `nix flake check` could not evaluate.
-    # The one integration worth keeping -- yazi opening files into a pane -- is
-    # the opener below, which only ever needed $ZELLIJ.
-    zellij = {
-      enable = true;
-
-      settings = {
-        default_shell = "fish";
-        # The frames cost two columns and a row per pane and say nothing the
-        # status bar does not; pane names are in the tab bar.
-        pane_frames = false;
-        copy_on_select = true;
-        mouse_mode = true;
-        scroll_buffer_size = 50000;
-        # Resurrect panes after a restart. This matters more here than on a
-        # laptop: the workspace runs on a node that resets every few hours.
-        session_serialization = true;
-      };
-
-      # The yazelix arrangement, rebuilt as a plain layout: file tree on the
-      # left, work on the right. Deliberately NOT the default_layout -- `zellij`
-      # gives an ordinary session and `zellij --layout dev` gives this one. Set
-      # `default_layout = "dev"` above if you would rather have it always.
-      #
-      # yazi opens files into the right-hand pane through the `opener` further
-      # down this file, which only ever needed $ZELLIJ set.
-      layouts.dev = ''
-        layout {
-            pane size=1 borderless=true {
-                plugin location="zellij:tab-bar"
-            }
-            pane split_direction="vertical" {
-                pane size="25%" name="files" command="yazi"
-                pane name="work"
-            }
-            pane size=2 borderless=true {
-                plugin location="zellij:status-bar"
-            }
-        }
-      '';
-    };
-
-    yazi = {
-      enable = true;
-      enableFishIntegration = true;
-      shellWrapperName = "y";
-      settings = {
-        mgr = {
-          show_hidden = true;
-          sort_by = "natural";
-          sort_dir_first = true;
-          sort_sensitive = false;
-        };
-        preview = {
-          max_width = 1000;
-          max_height = 1000;
-        };
-        opener = {
-          edit = [
-            {
-              run = ''if [ -n "$ZELLIJ" ]; then zellij edit "$@"; else nvim "$@"; fi'';
-              block = true;
-              for = "unix";
-            }
-          ];
-        };
-        open.rules = [
-          {
-            mime = "text/*";
-            use = "edit";
-          }
-          {
-            mime = "application/json";
-            use = "edit";
-          }
-          {
-            url = "*";
-            use = "edit";
-          }
-        ];
       };
     };
 

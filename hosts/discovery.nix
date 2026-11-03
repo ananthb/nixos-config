@@ -15,12 +15,11 @@ in {
     inputs.determinate.darwinModules.default
   ];
 
-  # Hack Nerd Font, not plain Hack. zellij's UI separators and eza's
-  # `icons = "auto"` both draw from the Nerd Font private-use range, which
-  # stock Hack does not carry -- they render as blank boxes. Same family,
-  # patched glyphs. This is the copy that matters: nix-darwin puts it in
-  # /Library/Fonts where macOS apps actually look, whereas a font in
-  # home.packages only lands in the nix profile.
+  # Hack Nerd Font, not plain Hack. eza's `icons = "auto"` draws from the
+  # Nerd Font private-use range, which stock Hack does not carry -- they
+  # render as blank boxes. Same family, patched glyphs. This is the copy that
+  # matters: nix-darwin puts it in /Library/Fonts where macOS apps actually
+  # look, whereas a font in home.packages only lands in the nix profile.
   fonts.packages = [pkgs.nerd-fonts.hack];
 
   # This machine runs Determinate Nix, which manages its own daemon and

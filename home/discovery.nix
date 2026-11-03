@@ -89,9 +89,6 @@ in {
     # repeated here.
     packages = with pkgs;
       [
-        aria2 # one-off torrent/magnet downloads: aria2c "magnet:?..."
-        flyctl
-        hcloud
         sops
         ssh-to-age
         vault
