@@ -2,10 +2,6 @@
 # catalog so hosts can drop what they never edit -- see dev.neovim.disable in
 # home/chromebook.nix.
 #
-# Zellij integration lives at the bottom of the config: zellij-nav bridges
-# Neovim splits and zellij panes, defaultEditor owns $EDITOR so `zellij edit`
-# opens nvim, and the yazi opener in dev.nix already targets $ZELLIJ.
-#
 # The catalog is the shape the previous editor module used, kept because it
 # is the part worth keeping: one entry per language group, merged across
 # entries, and filtered by the consuming host before anything is installed.
@@ -258,8 +254,8 @@ in {
 
     programs.nixvim = {
       enable = true;
-      # Owns EDITOR and VISUAL, which is also what `zellij edit` and the yazi
-      # opener use. No per-host home/*.nix file needs to set them.
+      # Owns EDITOR and VISUAL for external tools. No per-host home/*.nix
+      # file needs to set them.
       defaultEditor = true;
       vimdiffAlias = true;
 
@@ -507,11 +503,6 @@ in {
         illuminate.enable = true;
         todo-comments.enable = true;
         trouble.enable = true;
-
-        # Ctrl-h/j/k/l moves between Neovim splits and, at the edge of the
-        # editor, between zellij panes. This is the piece the old editor could
-        # not do without a plugin system.
-        zellij-nav.enable = true;
       };
 
       keymaps = [
@@ -610,40 +601,6 @@ in {
           options.desc = "Toggle inlay hints";
         }
 
-        # Zellij-aware window navigation.
-        {
-          key = "<C-h>";
-          action = "<cmd>ZellijNavigateLeftTab<cr>";
-          options = {
-            silent = true;
-            desc = "Navigate left/tab";
-          };
-        }
-        {
-          key = "<C-j>";
-          action = "<cmd>ZellijNavigateDown<cr>";
-          options = {
-            silent = true;
-            desc = "Navigate down";
-          };
-        }
-        {
-          key = "<C-k>";
-          action = "<cmd>ZellijNavigateUp<cr>";
-          options = {
-            silent = true;
-            desc = "Navigate up";
-          };
-        }
-        {
-          key = "<C-l>";
-          action = "<cmd>ZellijNavigateRightTab<cr>";
-          options = {
-            silent = true;
-            desc = "Navigate right/tab";
-          };
-        }
-
         # Treesitter textobjects: select.
         (selectTextObject "af" "@function.outer" "Around function")
         (selectTextObject "if" "@function.inner" "Inner function")
@@ -685,15 +642,6 @@ in {
         -- Terraform's .nomad files are HCL-shaped; this used to be built in,
         -- Neovim needs it spelled out.
         vim.filetype.add({ extension = { nomad = "hcl" } })
-
-        -- zellij-autolock puts a pane into locked mode while nvim runs. Hand
-        -- the keyboard back when the last buffer goes away.
-        if vim.env.ZELLIJ then
-          vim.api.nvim_create_autocmd("VimLeave", {
-            pattern = "*",
-            command = "silent !zellij action switch-mode normal",
-          })
-        end
       '';
     };
   };
