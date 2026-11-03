@@ -85,8 +85,8 @@ in {
     stateVersion = "24.05";
 
     # Only what modules/home/dev.nix does not already give every host: infra
-    # CLIs, a GUI editor, and the darwin-only pinentry. The shared dev tooling
-    # is not repeated here.
+    # CLIs and the darwin-only pinentry. The shared dev tooling is not
+    # repeated here.
     packages = with pkgs;
       [
         aria2 # one-off torrent/magnet downloads: aria2c "magnet:?..."
@@ -95,7 +95,6 @@ in {
         sops
         ssh-to-age
         vault
-        zed-editor
       ]
       ++ lib.optionals stdenv.hostPlatform.isDarwin [
         pinentry_mac

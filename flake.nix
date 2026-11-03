@@ -130,7 +130,6 @@
             "terraform"
             "vault"
             "vault-bin"
-            "vscode"
           ];
       };
 
