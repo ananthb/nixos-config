@@ -127,6 +127,10 @@
             apiKey = "-";
           };
         };
+        # gemini-4-argon's models.dev runtime is @ai-sdk/google, which posts
+        # /v1/models/…:generateContent; Aperture answers that path 405. Force the
+        # OpenAI-compatible runtime, whose chat completions Aperture routes.
+        providers.opencode-go.models.gemini-4-argon.package = "@opencode/ai/providers/openai-compatible";
       };
     };
 
