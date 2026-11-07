@@ -23,12 +23,15 @@
   openlogiPython = pkgs.python3.withPackages (ps: [ps.tomlkit]);
 in {
   imports = [
+    ../modules/home/macos-idle-lock.nix
     ../modules/home/macos-secure-enclave-ssh.nix
     inputs.scurry.homeManagerModules.default
     inputs.starla.homeManagerModules.default
   ];
 
   services = {
+    macosIdleLock.enable = true;
+
     macosSecureEnclaveSsh = {
       enable = true;
       label = "ananth@discovery";
