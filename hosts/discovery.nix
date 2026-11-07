@@ -139,7 +139,6 @@ in {
       # profile has Homebrew, so a cask could only ever mean this Mac drifting
       # to a different version than the workspace. The trade is that updates
       # arrive with `nix flake update` -- a store install cannot self-update.
-      "gimp"
       "google-chrome"
       "jellyfin-media-player"
       "openlogi"
