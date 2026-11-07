@@ -117,20 +117,25 @@
         # Only the two providers Aperture routes for us; the rest of models.dev
         # stays out of /models. Every model in each is enabled.
         enabled_providers = ["openrouter" "opencode-go"];
-        provider = {
-          openrouter.options = {
+        # V2 shape: package options moved from provider.*.options into
+        # providers.*.settings. Aperture rewrites the Authorization header, so the
+        # placeholder "-" key keeps opencode's key check quiet without ever going out.
+        providers = {
+          openrouter.settings = {
             baseURL = "http://aperture.cow-justice.ts.net/v1";
             apiKey = "-";
           };
-          opencode-go.options = {
-            baseURL = "http://aperture.cow-justice.ts.net/v1";
-            apiKey = "-";
+          opencode-go = {
+            settings = {
+              baseURL = "http://aperture.cow-justice.ts.net/v1";
+              apiKey = "-";
+            };
+            # gemini-4-argon's models.dev runtime is @ai-sdk/google, which posts
+            # /v1/models/…:generateContent; Aperture answers that path 405. Force
+            # the OpenAI-compatible runtime, whose chat completions Aperture routes.
+            models.gemini-4-argon.package = "@opencode/ai/providers/openai-compatible";
           };
         };
-        # gemini-4-argon's models.dev runtime is @ai-sdk/google, which posts
-        # /v1/models/…:generateContent; Aperture answers that path 405. Force the
-        # OpenAI-compatible runtime, whose chat completions Aperture routes.
-        providers.opencode-go.models.gemini-4-argon.package = "@opencode/ai/providers/openai-compatible";
       };
     };
 
