@@ -183,11 +183,14 @@ in {
         # providers.*.settings. Aperture rewrites the Authorization header, so the
         # placeholder "-" key keeps opencode's key check quiet without ever going out.
         providers = {
+          # Display names, so /model tells OpenRouter and the Go plan apart.
+          openrouter.name = "OpenRouter (Aperture)";
           openrouter.settings = {
             baseURL = "http://aperture.cow-justice.ts.net/v1";
             apiKey = "-";
           };
           aperture-go = {
+            name = "OpenCode Go (Aperture)";
             settings = {
               baseURL = "http://aperture.cow-justice.ts.net/v1";
               # Opencode's own credential check never runs on a custom id, so
