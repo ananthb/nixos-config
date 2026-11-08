@@ -11,7 +11,63 @@
   lib,
   pkgs,
   ...
-}: {
+}: let
+  # The Go plan's models Aperture routes; every workspace lists all of them.
+  go_models = [
+    {
+      id = "deepseek-v4-flash";
+      name = "DeepSeek V4 Flash";
+    }
+    {
+      id = "deepseek-v4-pro";
+      name = "DeepSeek V4 Pro";
+    }
+    {
+      id = "deepseek-v4.1-flash";
+      name = "DeepSeek V4.1 Flash";
+    }
+    {
+      id = "glm-5.3";
+      name = "GLM 5.3";
+    }
+    {
+      id = "glm-5.3-flash";
+      name = "GLM 5.3 Flash";
+    }
+    {
+      id = "gpt-6-luna";
+      name = "GPT-6 Luna";
+    }
+    {
+      id = "grok-4.7";
+      name = "Grok 4.7";
+    }
+    {
+      id = "hy3";
+      name = "HY3";
+    }
+    {
+      id = "kimi-k2.7-code";
+      name = "Kimi K2.7 Code";
+    }
+    {
+      id = "kimi-k3";
+      name = "Kimi K3";
+    }
+    {
+      id = "minimax-m3";
+      name = "MiniMax M3";
+    }
+    {
+      id = "qwen3.8-flash";
+      name = "Qwen 3.8 Flash";
+    }
+    {
+      id = "qwen3.8-max";
+      name = "Qwen 3.8 Max";
+    }
+  ];
+in {
   imports = [
     ./neovim.nix
   ];
@@ -111,12 +167,18 @@
         autoupdate = false;
         # The OpenCode Go plan, through Aperture, which holds the key. Aperture's
         # config (calculon-tech/platform) is the one list of what it routes.
-        model = "opencode-go/deepseek-v4.1-flash";
+        # Counted: opencode 2.2.1 requires its own OAuth credential on the
+        # provider id it treats as its own plan (opencode-go), ignoring
+        # options.apiKey and the env; the same models through an arbitrary id
+        # take options.apiKey as-is. So the gateway alias is aperture-go.
+        model = "aperture-go/deepseek-v4.1-flash";
         # Titles and summaries; opencode's default pick is a paid model.
-        small_model = "opencode-go/deepseek-v4.1-flash";
+        small_model = "aperture-go/deepseek-v4.1-flash";
         # Only the two providers Aperture routes for us; the rest of models.dev
-        # stays out of /models. Every model in each is enabled.
-        enabled_providers = ["openrouter" "opencode-go"];
+        # stays out of /models. Every model in each is enabled. Custom
+        # providers need each model declared (name and the OpenAI-compatible
+        # runtime); opencode does not list them itself.
+        enabled_providers = ["openrouter" "aperture-go"];
         # V2 shape: package options moved from provider.*.options into
         # providers.*.settings. Aperture rewrites the Authorization header, so the
         # placeholder "-" key keeps opencode's key check quiet without ever going out.
@@ -125,15 +187,24 @@
             baseURL = "http://aperture.cow-justice.ts.net/v1";
             apiKey = "-";
           };
-          opencode-go = {
+          aperture-go = {
             settings = {
               baseURL = "http://aperture.cow-justice.ts.net/v1";
+              # Opencode's own credential check never runs on a custom id, so
+              # the placeholder "-" is fine.
               apiKey = "-";
             };
-            # gemini-4-argon's models.dev runtime is @ai-sdk/google, which posts
-            # /v1/models/…:generateContent; Aperture answers that path 405. Force
-            # the OpenAI-compatible runtime, whose chat completions Aperture routes.
-            models.gemini-4-argon.package = "@opencode/ai/providers/openai-compatible";
+            # Each model points at the OpenAI-compatible runtime, whose chat
+            # completions Aperture routes; @ai-sdk/google's generateContent
+            # paths are not a thing there.
+            models = builtins.listToAttrs (builtins.map (m: {
+                name = m.id;
+                value = {
+                  name = m.name;
+                  package = "@opencode/ai/providers/openai-compatible";
+                };
+              })
+              go_models);
           };
         };
       };
