@@ -17,6 +17,15 @@
     # Skip while locked so the saver is not relaunched on every poll.
     /usr/sbin/ioreg -n Root -d1 | /usr/bin/grep -q CGSSessionScreenIsLocked && exit 0
 
+    # Skip whenever something is keeping the display awake -- full-screen
+    # video, a call, a presentation. That assertion is exactly what stops
+    # macOS from sleeping the display mid-video, and the screen saver fires
+    # with the display sleep, so honouring it keeps playback uninterrupted.
+    # Without this the HID timer below locks the screen over any long video.
+    /usr/bin/pmset -g assertions \
+      | /usr/bin/awk '/^ *PreventUserIdleDisplaySleep/ { found = ($2 != 0) } END { exit found ? 0 : 1 }' \
+      && exit 0
+
     # Start the saver, not a display sleep, so the pmset profile stays untouched.
     /usr/bin/open -b com.apple.ScreenSaver.Engine
   '';
@@ -26,7 +35,7 @@ in {
 
     idleSeconds = lib.mkOption {
       type = lib.types.ints.positive;
-      default = 50;
+      default = 300;
       description = "Seconds of HID idle before the screen saver starts; the password delay adds to this.";
     };
   };
