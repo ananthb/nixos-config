@@ -96,11 +96,15 @@ in {
     nerd-fonts.hack
     htop
     jq
+    kubectl
     lazygit
     mosh
     nix-output-monitor
     ripgrep
   ];
+
+  # The package ships none of its own; fish autoloads this at startup.
+  xdg.configFile."fish/completions/kubectl.fish".source = "${pkgs.kubectl}/share/fish/vendor_completions.d/kubectl.fish";
 
   # `fj auth login` for the forge. fj only knows OAuth client ids for a few
   # public forges; this is the forge's public PKCE app (calculon-tech/platform,
