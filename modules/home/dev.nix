@@ -207,7 +207,7 @@ in {
             models = builtins.listToAttrs (builtins.map (m: {
                 name = m.id;
                 value = {
-                  name = m.name;
+                  inherit (m) name;
                   package = "@opencode/ai/providers/openai-compatible";
                 };
               })
