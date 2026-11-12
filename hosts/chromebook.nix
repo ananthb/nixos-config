@@ -43,6 +43,7 @@
     inputs.nixos-crostini.nixosModules.baguette
     inputs.home-manager.nixosModules.home-manager
     ../modules/options.nix
+    ../modules/nixos/bootvine.nix
     ../modules/nixos/nix-settings.nix
   ];
 
