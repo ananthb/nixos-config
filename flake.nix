@@ -10,7 +10,7 @@
     };
 
     # Live tree of systemd jobs on the boot console, in the initrd and stage 2.
-    # Enabled for every NixOS host in modules/nixos/bootvine.nix.
+    # Imported by the hosts with a VT to draw on, via modules/nixos/bootvine.nix.
     bootvine = {
       url = "git+https://codeberg.org/wvhulle/bootvine";
       inputs.nixpkgs.follows = "nixpkgs";

@@ -43,7 +43,9 @@
     inputs.nixos-crostini.nixosModules.baguette
     inputs.home-manager.nixosModules.home-manager
     ../modules/options.nix
-    ../modules/nixos/bootvine.nix
+    # No ../modules/nixos/bootvine.nix here: this guest's console is crosvm's
+    # serial one, not a virtual terminal, so there is nothing for bootvine to
+    # draw on. See modules/nixos/bootvine.nix.
     ../modules/nixos/nix-settings.nix
   ];
 
