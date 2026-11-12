@@ -116,10 +116,9 @@ in {
   home.sessionVariables.FJ_FALLBACK_HOST = "https://calculon.tech";
 
   # Teach git the forge's credentials, so `fj auth login` is the only login.
-  # The tunnel in front of calculon.tech carries HTTP only -- git+ssh is on
-  # fleet-compute1:2222 over the tailnet -- so git speaks HTTPS here and needs a
-  # token as the password. fj already holds one; handing it over beats keeping
-  # a second long-lived PAT in the keychain.
+  # The tunnel in front of calculon.tech carries HTTP only, so git speaks
+  # HTTPS here and needs a token as the password. fj already holds one;
+  # handing it over beats keeping a second long-lived PAT in the keychain.
   #
   # `fj whoami` runs first on purpose. The OAuth token is short-lived, hours
   # rather than months, and fj is what renews it from the stored refresh_token.

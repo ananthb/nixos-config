@@ -148,11 +148,6 @@ in {
       enable = true;
       enableDefaultConfig = false;
       settings = {
-        "compute3.local " = {
-          IdentityAgent = "none";
-          AddKeysToAgent = "no";
-          IdentitiesOnly = "yes";
-        };
         # Exclude codespace hosts (cs.* and cs-*) so the YubiKey
         # IdentityFile doesn't block `gh codespace ssh` when the
         # device isn't plugged in.
