@@ -141,6 +141,7 @@ in {
       # arrive with `nix flake update` -- a store install cannot self-update.
       "google-chrome"
       "jellyfin-media-player"
+      "obsidian"
       "openlogi"
       "openmtp"
       "raspberry-pi-imager"
