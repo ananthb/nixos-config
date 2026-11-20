@@ -1,8 +1,6 @@
 # THE development environment. Every profile imports this and gets the same
 # CLI: neovim, fish, git, direnv, gpg, and the package baseline
-# below. There is deliberately no second "dev" file and no "common" --
-# those existed side by side and drifted, so `git`, `mosh`, `htop` and friends
-# were copy-pasted across four profiles and `htop` reached only one of them.
+# below.
 #
 # What does NOT belong here: secrets (sops, YubiKeys) and anything host- or
 # platform-specific. Those live in the consuming profile -- home/discovery.nix
@@ -107,8 +105,8 @@ in {
   xdg.configFile."fish/completions/kubectl.fish".source = "${pkgs.kubectl}/share/fish/vendor_completions.d/kubectl.fish";
 
   # `fj auth login` for the forge. fj only knows OAuth client ids for a few
-  # public forges; this is the forge's public PKCE app (calculon-tech/platform,
-  # tf/forgejo/cli.tf), not a secret. fj reads ~/.config on macOS too.
+  # public forges; this is the forge's public PKCE app, not a secret.
+  # fj reads ~/.config on macOS too.
   xdg.configFile."forgejo-cli/client_ids".text = ''
     calculon.tech cb2cd3ff-e45f-4b2c-9ad5-a9cee907033b
   '';
@@ -168,23 +166,10 @@ in {
       settings = {
         "$schema" = "https://opencode.ai/config.json";
         autoupdate = false;
-        # The OpenCode Go plan, through Aperture, which holds the key. Aperture's
-        # config (calculon-tech/platform) is the one list of what it routes.
-        # Counted: opencode 2.2.1 requires its own OAuth credential on the
-        # provider id it treats as its own plan (opencode-go), ignoring
-        # options.apiKey and the env; the same models through an arbitrary id
-        # take options.apiKey as-is. So the gateway alias is aperture-go.
         model = "aperture-go/deepseek-v4.1-flash";
         # Titles and summaries; opencode's default pick is a paid model.
         small_model = "aperture-go/deepseek-v4.1-flash";
-        # Only the two providers Aperture routes for us; the rest of models.dev
-        # stays out of /models. Every model in each is enabled. Custom
-        # providers need each model declared (name and the OpenAI-compatible
-        # runtime); opencode does not list them itself.
-        enabled_providers = ["openrouter" "aperture-go"];
-        # V2 shape: package options moved from provider.*.options into
-        # providers.*.settings. Aperture rewrites the Authorization header, so the
-        # placeholder "-" key keeps opencode's key check quiet without ever going out.
+        enabled_providers = ["openai" "openrouter" "aperture-go"];
         providers = {
           # Display names, so /model tells OpenRouter and the Go plan apart.
           openrouter.name = "OpenRouter (Aperture)";
