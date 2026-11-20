@@ -123,6 +123,7 @@ in {
     ];
     casks = [
       "1password"
+      "antigravity-cli"
       "betterdisplay"
       # The Dell U3225QE exposes DisplayPort audio without native CoreAudio
       # volume or DDC VCP 0x62. BetterDisplay cannot change a fixed-level

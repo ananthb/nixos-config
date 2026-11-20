@@ -81,25 +81,26 @@ in {
   # a second place to forget, and shows up as a duplicate in the profile.
   # `delta` IS listed: git uses it as the pager via settings, which does not
   # pull the package in on its own.
-  home.packages = with pkgs; [
-    antigravity-cli
-    coder
-    delta
-    devenv
-    forgejo-cli # fj: the forge at calculon.tech, as gh is to GitHub
-    fzf
-    gh
-    git-absorb
-    glab
-    nerd-fonts.hack
-    htop
-    jq
-    kubectl
-    lazygit
-    mosh
-    nix-output-monitor
-    ripgrep
-  ];
+  home.packages = with pkgs;
+    [
+      coder
+      delta
+      devenv
+      forgejo-cli # fj: the forge at calculon.tech, as gh is to GitHub
+      fzf
+      gh
+      git-absorb
+      glab
+      nerd-fonts.hack
+      htop
+      jq
+      kubectl
+      lazygit
+      mosh
+      nix-output-monitor
+      ripgrep
+    ]
+    ++ lib.optionals (!pkgs.stdenv.hostPlatform.isDarwin) [pkgs.antigravity-cli];
 
   # The package ships none of its own; fish autoloads this at startup.
   xdg.configFile."fish/completions/kubectl.fish".source = "${pkgs.kubectl}/share/fish/vendor_completions.d/kubectl.fish";
