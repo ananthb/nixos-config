@@ -202,6 +202,23 @@ in {
       };
     };
 
+    # Keep OpenAI as default; `codex -p aperture` routes through Aperture.
+    # mutableSettings keeps ~/.codex/config.toml writable for trust and UI state.
+    codex = {
+      enable = true;
+      mutableSettings = true;
+      settings.model_providers.aperture = {
+        name = "Aperture";
+        base_url = "http://aperture.cow-justice.ts.net/v1";
+        wire_api = "responses";
+        supports_websockets = false;
+      };
+      profiles.aperture = {
+        model_provider = "aperture";
+        model = "deepseek/deepseek-v4.1-flash";
+      };
+    };
+
     atuin = {
       enable = true;
       enableFishIntegration = true;
