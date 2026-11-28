@@ -6,6 +6,7 @@
 # platform-specific. Those live in the consuming profile -- home/discovery.nix
 # is the only one with any, because it is the only host with key material.
 {
+  config,
   lib,
   pkgs,
   ...
@@ -111,8 +112,13 @@ in {
   xdg.configFile."forgejo-cli/client_ids".text = ''
     calculon.tech cb2cd3ff-e45f-4b2c-9ad5-a9cee907033b
   '';
-  # The forge fj talks to outside a checkout; -H or a repo remote still wins.
-  home.sessionVariables.FJ_FALLBACK_HOST = "https://calculon.tech";
+  home.sessionVariables = {
+    # Share Cargo build artifacts across git worktrees instead of growing a
+    # separate ./target per worktree; project devShells can scope this per crate.
+    CARGO_TARGET_DIR = "${config.xdg.cacheHome}/cargo-target";
+    # The forge fj talks to outside a checkout; -H or a repo remote still wins.
+    FJ_FALLBACK_HOST = "https://calculon.tech";
+  };
 
   # Teach git the forge's credentials, so `fj auth login` is the only login.
   # The tunnel in front of calculon.tech carries HTTP only, so git speaks
